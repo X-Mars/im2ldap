@@ -25,7 +25,7 @@
         <el-card class="chart-card">
           <template #header>
             <div class="chart-header">
-              <h3>笔记趋势</h3>
+              <h3>用户数趋势</h3>
               <el-radio-group v-model="timeRange" size="small">
                 <el-radio-button value="week">本周</el-radio-button>
                 <el-radio-button value="month">本月</el-radio-button>
@@ -33,18 +33,11 @@
               </el-radio-group>
             </div>
           </template>
-          <base-chart :option="notesChartOption" height="360px" />
+          <base-chart :option="userTrendChartOption" height="360px" />
         </el-card>
       </el-col>
       <el-col :span="8">
-        <el-card class="chart-card">
-          <template #header>
-            <div class="chart-header">
-              <h3>分组分布</h3>
-            </div>
-          </template>
-          <base-chart :option="groupPieOption" height="360px" />
-        </el-card>
+        <sync-status-widget />
       </el-col>
     </el-row>
   </div>
@@ -53,6 +46,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { getNoteStats, getActiveUsers } from '@/api'
+import { getUserTrend } from '@/api/sync'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import {
@@ -63,6 +57,7 @@ import {
 } from '@element-plus/icons-vue'
 import type { EChartsOption } from 'echarts'
 import BaseChart from '@/components/BaseChart.vue'
+import SyncStatusWidget from '@/components/SyncStatusWidget.vue'
 import wecomImg from '@/assets/wecom.png'
 import feishuImg from '@/assets/feishu.png'
 import dingtalkImg from '@/assets/dingtalk.png'
@@ -117,31 +112,16 @@ const cards = ref([
 
 const fetchStats = async () => {
   try {
-    const [statsRes, activeUsersRes] = await Promise.all([
-      getNoteStats({ range: timeRange.value }),
-      getActiveUsers()
-    ])
+    const userTrendRes = await getUserTrend(timeRange.value);
     
-    // 更新笔记和分组数据
-    cards.value[0].value = statsRes.data.total_notes
-    cards.value[1].value = statsRes.data.total_groups
-    
-    // 更新活跃用户和用户总数数据
-    cards.value[2].value = activeUsersRes.data.active_users
-    cards.value[3].value = activeUsersRes.data.total_users
-
-    // 计算笔记增长趋势
-    const notes_charts = statsRes.data.notes_charts
-    if (notes_charts.length >= 2) {
-      const lastDay = notes_charts[notes_charts.length - 1].count
-      const prevDay = notes_charts[notes_charts.length - 2].count
-      if (prevDay > 0) {
-        cards.value[0].trend = Math.round((lastDay - prevDay) / prevDay * 100)
-      }
+    if (userTrendRes.data.current_stats) {
+      cards.value[0].value = userTrendRes.data.current_stats.wecom_users;
+      cards.value[1].value = userTrendRes.data.current_stats.feishu_users;
+      cards.value[2].value = userTrendRes.data.current_stats.dingtalk_users;
+      cards.value[3].value = userTrendRes.data.current_stats.ldap_users;
     }
 
-    // 更新图表数据
-    notesChartOption.value = {
+    userTrendChartOption.value = {
       tooltip: {
         trigger: 'axis',
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -151,6 +131,11 @@ const fetchStats = async () => {
           color: '#666'
         }
       },
+      legend: {
+        data: ['企业微信', '飞书', '钉钉', 'OpenLDAP'],
+        right: '10%',
+        top: '0%'
+      },
       grid: {
         left: '3%',
         right: '4%',
@@ -159,18 +144,12 @@ const fetchStats = async () => {
       },
       xAxis: {
         type: 'category',
-        data: notes_charts.map((item: any) => {
-          if (timeRange.value === 'year') {
-            const [year, month] = item.date.split('-')
-            return `${year}年${month}月`
-          } else if (timeRange.value === 'month') {
-            const date = new Date(item.date)
-            return `${date.getMonth() + 1}/${date.getDate()}`
-          } else {
-            const date = new Date(item.date)
-            return ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][date.getDay()]
+        data: userTrendRes.data.dates,
+        axisLine: {
+          lineStyle: {
+            color: '#ddd'
           }
-        })
+        }
       },
       yAxis: {
         type: 'value',
@@ -183,61 +162,54 @@ const fetchStats = async () => {
           }
         }
       },
-      series: [{
-        name: '笔记数量',
-        type: 'line',
-        data: notes_charts.map((item: any) => item.count),
-        smooth: timeRange.value === 'year'
-      }]
-    }
-
-    // 更新分组分布图表数据
-    groupPieOption.value = {
-      color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'],
-      tooltip: {
-        trigger: 'item',
-        formatter: '{b}: {c} ({d}%)',
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        borderColor: '#eee',
-        borderWidth: 1,
-        textStyle: {
-          color: '#666'
-        }
-      },
-      legend: {
-        orient: 'vertical',
-        right: '5%',
-        top: 'center',
-        textStyle: {
-          color: '#666'
-        }
-      },
       series: [
         {
-          name: '分组分布',
-          type: 'pie',
-          radius: ['50%', '70%'],
-          center: ['40%', '50%'],
-          avoidLabelOverlap: false,
-          itemStyle: {
-            borderRadius: 10,
-            borderColor: '#fff',
-            borderWidth: 2
+          name: '企业微信',
+          type: 'line',
+          smooth: true,
+          data: userTrendRes.data.wecom_users,
+          lineStyle: {
+            width: 3,
+            color: '#409EFF'
           },
-          label: {
-            show: false
+          symbol: 'circle',
+          symbolSize: 6
+        },
+        {
+          name: '飞书',
+          type: 'line',
+          smooth: true,
+          data: userTrendRes.data.feishu_users,
+          lineStyle: {
+            width: 3,
+            color: '#67C23A'
           },
-          emphasis: {
-            label: {
-              show: true,
-              fontSize: 14,
-              fontWeight: 'bold'
-            }
+          symbol: 'circle',
+          symbolSize: 6
+        },
+        {
+          name: '钉钉',
+          type: 'line',
+          smooth: true,
+          data: userTrendRes.data.dingtalk_users,
+          lineStyle: {
+            width: 3,
+            color: '#E6A23C'
           },
-          labelLine: {
-            show: false
+          symbol: 'circle',
+          symbolSize: 6
+        },
+        {
+          name: 'OpenLDAP',
+          type: 'line',
+          smooth: true,
+          data: userTrendRes.data.ldap_users,
+          lineStyle: {
+            width: 3,
+            color: '#909399'
           },
-          data: statsRes.data.groups_distribution
+          symbol: 'circle',
+          symbolSize: 6
         }
       ]
     }
@@ -246,7 +218,6 @@ const fetchStats = async () => {
   }
 }
 
-// 监听时间范围变化
 watch(timeRange, () => {
   fetchStats()
 })
@@ -256,8 +227,7 @@ onMounted(async () => {
   fetchStats()
 })
 
-// 笔记趋势图表配置
-const notesChartOption = ref<EChartsOption>({
+const userTrendChartOption = ref<EChartsOption>({
   tooltip: {
     trigger: 'axis',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -266,6 +236,11 @@ const notesChartOption = ref<EChartsOption>({
     textStyle: {
       color: '#666'
     }
+  },
+  legend: {
+    data: ['企业微信', '飞书', '钉钉', 'OpenLDAP'],
+    right: '10%',
+    top: '0%'
   },
   grid: {
     left: '3%',
@@ -296,92 +271,52 @@ const notesChartOption = ref<EChartsOption>({
   },
   series: [
     {
-      name: '笔记数',
+      name: '企业微信',
       type: 'line',
       smooth: true,
-      data: [15, 22, 18, 30, 25, 35, 28],
+      data: [150, 165, 158, 172, 168, 180, 185],
       lineStyle: {
         width: 3,
         color: '#409EFF'
       },
-      areaStyle: {
-        color: {
-          type: 'linear',
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            {
-              offset: 0,
-              color: 'rgba(64, 158, 255, 0.2)'
-            },
-            {
-              offset: 1,
-              color: 'rgba(64, 158, 255, 0.05)'
-            }
-          ]
-        }
+      symbol: 'circle',
+      symbolSize: 6
+    },
+    {
+      name: '飞书',
+      type: 'line',
+      smooth: true,
+      data: [100, 110, 115, 112, 120, 122, 124],
+      lineStyle: {
+        width: 3,
+        color: '#67C23A'
       },
       symbol: 'circle',
-      symbolSize: 8
-    }
-  ]
-})
-
-// 分组分布图表配置
-const groupPieOption = ref<EChartsOption>({
-  color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'],
-  tooltip: {
-    trigger: 'item',
-    formatter: '{b}: {c} ({d}%)',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderColor: '#eee',
-    borderWidth: 1,
-    textStyle: {
-      color: '#666'
-    }
-  },
-  legend: {
-    orient: 'vertical',
-    right: '5%',
-    top: 'center',
-    textStyle: {
-      color: '#666'
-    }
-  },
-  series: [
+      symbolSize: 6
+    },
     {
-      name: '分组分布',
-      type: 'pie',
-      radius: ['50%', '70%'],
-      center: ['40%', '50%'],
-      avoidLabelOverlap: false,
-      itemStyle: {
-        borderRadius: 10,
-        borderColor: '#fff',
-        borderWidth: 2
+      name: '钉钉',
+      type: 'line',
+      smooth: true,
+      data: [120, 132, 128, 140, 145, 150, 156],
+      lineStyle: {
+        width: 3,
+        color: '#E6A23C'
       },
-      label: {
-        show: false
+      symbol: 'circle',
+      symbolSize: 6
+    },
+    {
+      name: 'OpenLDAP',
+      type: 'line',
+      smooth: true,
+      data: [200, 205, 210, 208, 215, 212, 220],
+      lineStyle: {
+        width: 3,
+        color: '#909399'
       },
-      emphasis: {
-        label: {
-          show: true,
-          fontSize: 14,
-          fontWeight: 'bold'
-        }
-      },
-      labelLine: {
-        show: false
-      },
-      data: [
-        { value: 35, name: '无数据' },
-        { value: 25, name: '学习' },
-        { value: 20, name: '生活' },
-        { value: 15, name: '娱乐' },
-        { value: 5, name: '其他' }
-      ]
+      symbol: 'circle',
+      symbolSize: 6
     }
   ]
 })

@@ -21,6 +21,8 @@ export interface GitLabUser {
   gitlab_id: string
   created_at: string
   updated_at: string
+  linked?: boolean
+  user_id?: string
 }
 
 export interface GiteeUser {
@@ -32,6 +34,82 @@ export interface GiteeUser {
   gitee_id: string
   created_at: string
   updated_at: string
+  linked?: boolean
+  user_id?: string
+}
+
+export interface WeComUser {
+  id: string
+  name: string
+  username: string
+  email: string
+  mobile: string
+  department: string
+  position: string
+  wecom_userid: string
+  created_at: string
+  updated_at: string
+  avatar?: string
+  linked?: boolean
+  user_id?: string
+}
+
+export interface FeiShuUser {
+  id: string
+  name: string
+  username: string
+  email: string
+  mobile: string
+  department: string
+  position: string
+  feishu_userid: string
+  created_at: string
+  updated_at: string
+  avatar?: string
+  linked?: boolean
+  user_id?: string
+}
+
+export interface DingTalkUser {
+  id: string
+  name: string
+  username: string
+  email: string
+  mobile: string
+  department: string
+  position: string
+  dingtalk_userid: string
+  created_at: string
+  updated_at: string
+  avatar?: string
+  linked?: boolean
+  user_id?: string
+}
+
+export interface GitHubUser {
+  id: string
+  name: string
+  username: string
+  email: string
+  avatar_url: string
+  github_id: string
+  created_at: string
+  updated_at: string
+  linked?: boolean
+  user_id?: string
+}
+
+export interface GoogleUser {
+  id: string
+  name: string
+  username: string
+  email: string
+  avatar_url: string
+  google_id: string
+  created_at: string
+  updated_at: string
+  linked?: boolean
+  user_id?: string
 }
 
 export const userApi = {
@@ -91,5 +169,75 @@ export const userApi = {
       gitlab_url: string | null
       gitee_url: string | null
     }>('/auth/login/qrcode/')
+  },
+
+  // 获取本地用户列表
+  getUsers: () => {
+    return request.get<User[]>('/auth/users/')
+  },
+
+  // 创建本地用户
+  createUser: (data: Partial<User>) => {
+    return request.post<User>('/auth/users/', data)
+  },
+
+  // 更新本地用户
+  updateUser: (id: string, data: Partial<User>) => {
+    return request.patch<User>(`/auth/users/${id}/`, data)
+  },
+
+  // 删除本地用户
+  deleteUser: (id: string) => {
+    return request.delete(`/auth/users/${id}/`)
+  },
+
+  // 获取企业微信用户列表
+  getWeComUsers: () => {
+    return request.get<WeComUser[]>('/auth/wecom-users/')
+  },
+
+  // 获取飞书用户列表
+  getFeiShuUsers: () => {
+    return request.get<FeiShuUser[]>('/auth/feishu-users/')
+  },
+
+  // 获取钉钉用户列表
+  getDingTalkUsers: () => {
+    return request.get<DingTalkUser[]>('/auth/dingtalk-users/')
+  },
+
+  // 获取GitHub用户列表
+  getGitHubUsers: () => {
+    return request.get<GitHubUser[]>('/auth/github-users/')
+  },
+
+  // 获取Google用户列表
+  getGoogleUsers: () => {
+    return request.get<GoogleUser[]>('/auth/google-users/')
+  },
+
+  // 获取GitLab用户列表
+  getGitLabUsers: () => {
+    return request.get<GitLabUser[]>('/auth/gitlab-users/')
+  },
+
+  // 获取Gitee用户列表
+  getGiteeUsers: () => {
+    return request.get<GiteeUser[]>('/auth/gitee-users/')
+  },
+
+  // 链接本地用户和第三方用户
+  linkUser: (userId: string, thirdPartyUserId: string, thirdPartyType: string) => {
+    return request.post(`/auth/users/${userId}/link/`, {
+      third_party_user_id: thirdPartyUserId,
+      third_party_type: thirdPartyType
+    })
+  },
+
+  // 解除本地用户和第三方用户的链接
+  unlinkUser: (userId: string, thirdPartyType: string) => {
+    return request.post(`/auth/users/${userId}/unlink/`, {
+      third_party_type: thirdPartyType
+    })
   }
 }

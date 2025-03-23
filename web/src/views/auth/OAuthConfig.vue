@@ -36,6 +36,20 @@
               </el-link>
             </template>
           </el-table-column>
+          <el-table-column prop="sync_enabled" label="是否同步用户到ldap" width="200">
+            <template #default="{ row }">
+              <el-tag :type="row.sync_enabled ? 'success' : 'info'">
+                {{ row.sync_enabled ? '是' : '否' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="fetch_users" label="获取用户" width="200">
+            <template #default="{ row }">
+              <el-tag :type="row.fetch_users ? 'success' : 'info'">
+                {{ row.fetch_users ? '是' : '否' }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="enabled" label="状态" width="100">
             <template #default="{ row }">
               <el-switch
@@ -93,6 +107,20 @@
               </el-link>
             </template>
           </el-table-column>
+          <el-table-column prop="sync_enabled" label="是否同步用户到ldap" width="200">
+            <template #default="{ row }">
+              <el-tag :type="row.sync_enabled ? 'success' : 'info'">
+                {{ row.sync_enabled ? '是' : '否' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="fetch_users" label="获取用户" width="200">
+            <template #default="{ row }">
+              <el-tag :type="row.fetch_users ? 'success' : 'info'">
+                {{ row.fetch_users ? '是' : '否' }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="enabled" label="状态" width="100">
             <template #default="{ row }">
               <el-switch
@@ -137,7 +165,7 @@
         
         <el-table :data="dingtalkConfigs" v-loading="loading.dingtalk">
           <el-table-column prop="app_id" label="APP ID" width="350" />
-          <el-table-column prop="client_id" label="Client ID" width="200" />
+          <el-table-column prop="client_id" label="Client ID" />
           <el-table-column prop="client_secret" label="Client Secret" show-overflow-tooltip />
           <el-table-column prop="redirect_uri" label="回调域名" show-overflow-tooltip>
             <template #default="{ row }">
@@ -149,6 +177,20 @@
               >
                 {{ row.redirect_uri }}
               </el-link>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sync_enabled" label="是否同步用户到ldap" width="200">
+            <template #default="{ row }">
+              <el-tag :type="row.sync_enabled ? 'success' : 'info'">
+                {{ row.sync_enabled ? '是' : '否' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="fetch_users" label="获取用户" width="200">
+            <template #default="{ row }">
+              <el-tag :type="row.fetch_users ? 'success' : 'info'">
+                {{ row.fetch_users ? '是' : '否' }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="enabled" label="状态" width="100">
@@ -432,6 +474,14 @@
               placeholder="留空将自动使用当前域名"
             />
           </el-form-item>
+          <el-form-item label="是否同步" prop="sync_enabled">
+            <el-switch v-model="form.sync_enabled" />
+            <span class="form-item-tip">开启后，将同步企业微信用户数据到LDAP</span>
+          </el-form-item>
+          <el-form-item label="获取用户列表" prop="fetch_users">
+            <el-switch v-model="form.fetch_users" />
+            <span class="form-item-tip">开启后，将定期从企业微信获取用户列表</span>
+          </el-form-item>
         </template>
 
         <template v-if="activeTab === 'feishu'">
@@ -446,6 +496,14 @@
               v-model="form.redirect_uri" 
               placeholder="留空将自动使用当前域名"
             />
+          </el-form-item>
+          <el-form-item label="是否同步" prop="sync_enabled">
+            <el-switch v-model="form.sync_enabled" />
+            <span class="form-item-tip">开启后，将同步飞书用户数据到LDAP</span>
+          </el-form-item>
+          <el-form-item label="获取用户列表" prop="fetch_users">
+            <el-switch v-model="form.fetch_users" />
+            <span class="form-item-tip">开启后，将定期从飞书获取用户列表</span>
           </el-form-item>
         </template>
 
@@ -464,6 +522,14 @@
               v-model="form.redirect_uri" 
               placeholder="留空将自动使用当前域名"
             />
+          </el-form-item>
+          <el-form-item label="是否同步" prop="sync_enabled">
+            <el-switch v-model="form.sync_enabled" />
+            <span class="form-item-tip">开启后，将同步钉钉用户数据到LDAP</span>
+          </el-form-item>
+          <el-form-item label="获取用户列表" prop="fetch_users">
+            <el-switch v-model="form.fetch_users" />
+            <span class="form-item-tip">开启后，将定期从钉钉获取用户列表</span>
           </el-form-item>
         </template>
 
@@ -600,7 +666,9 @@ const form = ref<any>({
   client_secret: '',
   redirect_uri: '',
   gitlab_server: 'https://gitlab.com',
-  enabled: true
+  enabled: true,
+  sync_enabled: true,
+  fetch_users: true
 })
 
 // 表单标题
@@ -690,7 +758,9 @@ const resetForm = () => {
     client_secret: '',
     redirect_uri: '',
     gitlab_server: 'https://gitlab.com',
-    enabled: true
+    enabled: true,
+    sync_enabled: true,
+    fetch_users: true
   }
   currentConfig.value = null
   if (formRef.value) {
@@ -915,5 +985,11 @@ const baseUrl = computed(() => {
 
 :deep(.el-switch) {
   --el-switch-on-color: var(--el-color-success);
+}
+
+.form-item-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 10px;
 }
 </style> 

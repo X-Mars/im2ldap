@@ -42,19 +42,19 @@ class LoginSerializer(serializers.Serializer):
 class WeComConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeComConfig
-        fields = ['id', 'corp_id', 'agent_id', 'secret', 'redirect_uri', 'enabled', 'created_at', 'updated_at']
+        fields = ['id', 'corp_id', 'agent_id', 'secret', 'redirect_uri', 'enabled', 'sync_enabled', 'fetch_users', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 class FeiShuConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = FeiShuConfig
-        fields = ['id', 'app_id', 'app_secret', 'redirect_uri', 'enabled', 'created_at', 'updated_at']
+        fields = ['id', 'app_id', 'app_secret', 'redirect_uri', 'enabled', 'sync_enabled', 'fetch_users', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 class DingTalkConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = DingTalkConfig
-        fields = ['id', 'app_id', 'client_id', 'client_secret', 'redirect_uri', 'enabled', 'created_at', 'updated_at']
+        fields = ['id', 'client_id', 'client_secret', 'app_id', 'redirect_uri', 'enabled', 'sync_enabled', 'fetch_users', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
 class GitHubConfigSerializer(serializers.ModelSerializer):

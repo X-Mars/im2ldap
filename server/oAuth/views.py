@@ -8,7 +8,7 @@ from .serializers import UserSerializer, LoginSerializer, GroupSerializer, WeCom
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.decorators import api_view, permission_classes
-from .models import User, WeComConfig, FeiShuConfig, DingTalkConfig, GitHubConfig, GoogleConfig, GitLabConfig, GiteeConfig
+from .models import User, WeComConfig, FeiShuConfig, DingTalkConfig, GitHubConfig, GoogleConfig, GitLabConfig, GiteeConfig, WeComUser, FeiShuUser, DingTalkUser, GitHubUser, GoogleUser, GitLabUser, GiteeUser
 from django.contrib.auth.models import Group
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import viewsets
@@ -342,3 +342,324 @@ class GiteeConfigViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(config)
             return Response(serializer.data)
         return Response(None)
+
+# 新增第三方用户API视图
+class WeComUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """企业微信用户视图集"""
+    queryset = WeComUser.objects.all().order_by('-created_at')
+    permission_classes = [IsAdminUser]
+    
+    def list(self, request):
+        queryset = self.get_queryset()
+        data = []
+        for user in queryset:
+            user_data = {
+                'id': user.id,
+                'name': user.name,
+                'username': user.wecom_user_id,
+                'email': user.email,
+                'mobile': user.mobile,
+                'department': user.department,
+                'position': user.position,
+                'avatar': user.avatar,
+                'wecom_userid': user.wecom_user_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'linked': user.user is not None,
+                'user_id': user.user.id if user.user else None
+            }
+            data.append(user_data)
+        return Response(data)
+
+
+class FeiShuUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """飞书用户视图集"""
+    queryset = FeiShuUser.objects.all().order_by('-created_at')
+    permission_classes = [IsAdminUser]
+    
+    def list(self, request):
+        queryset = self.get_queryset()
+        data = []
+        for user in queryset:
+            user_data = {
+                'id': user.id,
+                'name': user.name,
+                'username': user.open_id,
+                'email': user.email,
+                'mobile': user.mobile,
+                'avatar': user.avatar,
+                'feishu_userid': user.open_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'linked': user.user is not None,
+                'user_id': user.user.id if user.user else None
+            }
+            data.append(user_data)
+        return Response(data)
+
+
+class DingTalkUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """钉钉用户视图集"""
+    queryset = DingTalkUser.objects.all().order_by('-created_at')
+    permission_classes = [IsAdminUser]
+    
+    def list(self, request):
+        queryset = self.get_queryset()
+        data = []
+        for user in queryset:
+            user_data = {
+                'id': user.id,
+                'name': user.name,
+                'username': user.open_id,
+                'email': user.email,
+                'mobile': user.mobile,
+                'department': user.department,
+                'position': user.position,
+                'avatar': user.avatar,
+                'dingtalk_userid': user.open_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'linked': user.user is not None,
+                'user_id': user.user.id if user.user else None
+            }
+            data.append(user_data)
+        return Response(data)
+
+
+class GitHubUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """GitHub用户视图集"""
+    queryset = GitHubUser.objects.all().order_by('-created_at')
+    permission_classes = [IsAdminUser]
+    
+    def list(self, request):
+        queryset = self.get_queryset()
+        data = []
+        for user in queryset:
+            user_data = {
+                'id': user.id,
+                'name': user.name,
+                'username': user.login,
+                'email': user.email,
+                'avatar_url': user.avatar_url,
+                'github_id': user.github_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'linked': user.user is not None,
+                'user_id': user.user.id if user.user else None
+            }
+            data.append(user_data)
+        return Response(data)
+
+
+class GoogleUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """Google用户视图集"""
+    queryset = GoogleUser.objects.all().order_by('-created_at')
+    permission_classes = [IsAdminUser]
+    
+    def list(self, request):
+        queryset = self.get_queryset()
+        data = []
+        for user in queryset:
+            user_data = {
+                'id': user.id,
+                'name': user.name,
+                'username': user.email,
+                'email': user.email,
+                'avatar_url': user.picture,
+                'google_id': user.google_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'linked': user.user is not None,
+                'user_id': user.user.id if user.user else None
+            }
+            data.append(user_data)
+        return Response(data)
+
+
+class GitLabUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """GitLab用户视图集"""
+    queryset = GitLabUser.objects.all().order_by('-created_at')
+    permission_classes = [IsAdminUser]
+    
+    def list(self, request):
+        queryset = self.get_queryset()
+        data = []
+        for user in queryset:
+            user_data = {
+                'id': user.id,
+                'name': user.name,
+                'username': user.username,
+                'email': user.email,
+                'avatar_url': user.avatar_url,
+                'gitlab_id': user.gitlab_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'linked': user.user is not None,
+                'user_id': user.user.id if user.user else None
+            }
+            data.append(user_data)
+        return Response(data)
+
+
+class GiteeUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """Gitee用户视图集"""
+    queryset = GiteeUser.objects.all().order_by('-created_at')
+    permission_classes = [IsAdminUser]
+    
+    def list(self, request):
+        queryset = self.get_queryset()
+        data = []
+        for user in queryset:
+            user_data = {
+                'id': user.id,
+                'name': user.name,
+                'username': user.username,
+                'email': user.email,
+                'avatar_url': user.avatar_url,
+                'gitee_id': user.gitee_id,
+                'created_at': user.created_at,
+                'updated_at': user.updated_at,
+                'linked': user.user is not None,
+                'user_id': user.user.id if user.user else None
+            }
+            data.append(user_data)
+        return Response(data)
+
+# 用户链接和解除链接API
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def link_user(request, user_id):
+    """将本地用户与第三方用户关联"""
+    try:
+        user = User.objects.get(id=user_id)
+        third_party_user_id = request.data.get('third_party_user_id')
+        third_party_type = request.data.get('third_party_type')
+        
+        if not third_party_user_id or not third_party_type:
+            return Response({'message': '缺少必要的参数'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if third_party_type == 'wecom':
+            third_party_user = WeComUser.objects.get(id=third_party_user_id)
+            # 检查是否已关联其他用户
+            if third_party_user.user and third_party_user.user.id != user_id:
+                return Response({'message': '该企业微信用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
+            third_party_user.user = user
+            third_party_user.save()
+        elif third_party_type == 'feishu':
+            third_party_user = FeiShuUser.objects.get(id=third_party_user_id)
+            if third_party_user.user and third_party_user.user.id != user_id:
+                return Response({'message': '该飞书用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
+            third_party_user.user = user
+            third_party_user.save()
+        elif third_party_type == 'dingtalk':
+            third_party_user = DingTalkUser.objects.get(id=third_party_user_id)
+            if third_party_user.user and third_party_user.user.id != user_id:
+                return Response({'message': '该钉钉用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
+            third_party_user.user = user
+            third_party_user.save()
+        elif third_party_type == 'github':
+            third_party_user = GitHubUser.objects.get(id=third_party_user_id)
+            if third_party_user.user and third_party_user.user.id != user_id:
+                return Response({'message': '该GitHub用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
+            third_party_user.user = user
+            third_party_user.save()
+        elif third_party_type == 'google':
+            third_party_user = GoogleUser.objects.get(id=third_party_user_id)
+            if third_party_user.user and third_party_user.user.id != user_id:
+                return Response({'message': '该Google用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
+            third_party_user.user = user
+            third_party_user.save()
+        elif third_party_type == 'gitlab':
+            third_party_user = GitLabUser.objects.get(id=third_party_user_id)
+            if third_party_user.user and third_party_user.user.id != user_id:
+                return Response({'message': '该GitLab用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
+            third_party_user.user = user
+            third_party_user.save()
+        elif third_party_type == 'gitee':
+            third_party_user = GiteeUser.objects.get(id=third_party_user_id)
+            if third_party_user.user and third_party_user.user.id != user_id:
+                return Response({'message': '该Gitee用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
+            third_party_user.user = user
+            third_party_user.save()
+        else:
+            return Response({'message': '不支持的第三方类型'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({'message': '关联成功'})
+    except User.DoesNotExist:
+        return Response({'message': '本地用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+    except (WeComUser.DoesNotExist, FeiShuUser.DoesNotExist, DingTalkUser.DoesNotExist, 
+            GitHubUser.DoesNotExist, GoogleUser.DoesNotExist, GitLabUser.DoesNotExist, 
+            GiteeUser.DoesNotExist):
+        return Response({'message': '第三方用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'message': '关联失败', 'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def unlink_user(request, user_id):
+    """解除本地用户与第三方用户的关联"""
+    try:
+        user = User.objects.get(id=user_id)
+        third_party_type = request.data.get('third_party_type')
+        
+        if not third_party_type:
+            return Response({'message': '缺少必要的参数'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if third_party_type == 'wecom':
+            try:
+                third_party_user = WeComUser.objects.get(user=user)
+                third_party_user.user = None
+                third_party_user.save()
+            except WeComUser.DoesNotExist:
+                return Response({'message': '该用户未关联企业微信用户'}, status=status.HTTP_400_BAD_REQUEST)
+        elif third_party_type == 'feishu':
+            try:
+                third_party_user = FeiShuUser.objects.get(user=user)
+                third_party_user.user = None
+                third_party_user.save()
+            except FeiShuUser.DoesNotExist:
+                return Response({'message': '该用户未关联飞书用户'}, status=status.HTTP_400_BAD_REQUEST)
+        elif third_party_type == 'dingtalk':
+            try:
+                third_party_user = DingTalkUser.objects.get(user=user)
+                third_party_user.user = None
+                third_party_user.save()
+            except DingTalkUser.DoesNotExist:
+                return Response({'message': '该用户未关联钉钉用户'}, status=status.HTTP_400_BAD_REQUEST)
+        elif third_party_type == 'github':
+            try:
+                third_party_user = GitHubUser.objects.get(user=user)
+                third_party_user.user = None
+                third_party_user.save()
+            except GitHubUser.DoesNotExist:
+                return Response({'message': '该用户未关联GitHub用户'}, status=status.HTTP_400_BAD_REQUEST)
+        elif third_party_type == 'google':
+            try:
+                third_party_user = GoogleUser.objects.get(user=user)
+                third_party_user.user = None
+                third_party_user.save()
+            except GoogleUser.DoesNotExist:
+                return Response({'message': '该用户未关联Google用户'}, status=status.HTTP_400_BAD_REQUEST)
+        elif third_party_type == 'gitlab':
+            try:
+                third_party_user = GitLabUser.objects.get(user=user)
+                third_party_user.user = None
+                third_party_user.save()
+            except GitLabUser.DoesNotExist:
+                return Response({'message': '该用户未关联GitLab用户'}, status=status.HTTP_400_BAD_REQUEST)
+        elif third_party_type == 'gitee':
+            try:
+                third_party_user = GiteeUser.objects.get(user=user)
+                third_party_user.user = None
+                third_party_user.save()
+            except GiteeUser.DoesNotExist:
+                return Response({'message': '该用户未关联Gitee用户'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'message': '不支持的第三方类型'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({'message': '解除关联成功'})
+    except User.DoesNotExist:
+        return Response({'message': '本地用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'message': '解除关联失败', 'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

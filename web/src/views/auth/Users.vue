@@ -6,76 +6,388 @@
       </el-button>
     </div>
 
-    <el-table 
-      :data="users" 
-      v-loading="loading"
-      stripe
-    >
-      <el-table-column prop="username" label="用户名" />
-      <el-table-column prop="first_name" label="姓名">
-        <template #default="{ row }">
-          {{ row.first_name }} {{ row.last_name }}
-        </template>
-      </el-table-column>
-      <!-- <el-table-column prop="last_name" label="名" /> -->
-      <el-table-column prop="email" label="邮箱" />
-      <el-table-column prop="role" label="角色">
-        <template #default="{ row }">
-          <el-tag :type="getRoleTagType(row.role)">{{ getRoleLabel(row.role) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="is_active" label="状态" width="100">
-        <template #default="{ row }">
-          <el-switch
-            v-model="row.is_active"
-            :loading="row.statusLoading"
-            @change="handleStatusChange(row)"
-            :active-text="row.is_active ? '启用' : '禁用'"
-            :disabled="row.username === userStore.user?.username"
-            inline-prompt
-          />
-        </template>
-      </el-table-column>
-      <el-table-column prop="last_active_at" label="最后活跃时间">
-        <template #default="{ row }">
-          {{ formatDateTime(row.last_active_at) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="date_joined" label="加入时间">
-        <template #default="{ row }">
-          {{ formatDateTime(row.date_joined) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" :width="showAuthButton ? 280 : 200" fixed="right">
-        <template #default="{ row }">
-          <el-button-group>
-            <el-button 
-              type="primary" 
-              :icon="Edit"
-              @click="handleEdit(row)"
-            >
-              编辑
-            </el-button>
-            <el-button 
-              v-if="showAuthButton"
-              type="success" 
-              :icon="Key"
-              @click="handleAuth(row)"
-            >
-              授权
-            </el-button>
-            <el-button 
-              type="danger" 
-              :icon="Delete"
-              :disabled="row.username === userStore.user?.username"
-              @click="handleDelete(row)"
-            >
-              删除
-            </el-button>
-          </el-button-group>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-tabs v-model="activeTab" @tab-click="handleTabChange">
+      <el-tab-pane label="本地用户" name="local">
+        <el-table 
+          :data="users" 
+          v-loading="loading.local"
+          stripe
+        >
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="first_name" label="姓名">
+            <template #default="{ row }">
+              {{ row.first_name }} {{ row.last_name }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="role" label="角色">
+            <template #default="{ row }">
+              <el-tag :type="getRoleTagType(row.role)">{{ getRoleLabel(row.role) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="is_active" label="状态" width="100">
+            <template #default="{ row }">
+              <el-switch
+                v-model="row.is_active"
+                :loading="row.statusLoading"
+                @change="handleStatusChange(row)"
+                :active-text="row.is_active ? '启用' : '禁用'"
+                :disabled="row.username === userStore.user?.username"
+                inline-prompt
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="last_active_at" label="最后活跃时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.last_active_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="date_joined" label="加入时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.date_joined) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" :width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button-group>
+                <el-button 
+                  type="primary" 
+                  :icon="Edit"
+                  @click="handleEdit(row)"
+                >
+                  编辑
+                </el-button>
+                <el-button 
+                  type="danger" 
+                  :icon="Delete"
+                  :disabled="row.username === userStore.user?.username"
+                  @click="handleDelete(row)"
+                >
+                  删除
+                </el-button>
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="企业微信用户" name="wecom">
+        <el-table 
+          :data="wecomUsers" 
+          v-loading="loading.wecom"
+          stripe
+        >
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="mobile" label="手机号" />
+          <el-table-column prop="department" label="部门" />
+          <el-table-column prop="position" label="职位" />
+          <el-table-column prop="created_at" label="创建时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="已关联本地用户" width="180">
+            <template #default="{ row }">
+              <el-tag v-if="row.linked" type="success">
+                {{ getLinkedUserName(row.user_id) }}
+              </el-tag>
+              <span v-else>未关联</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                type="primary" 
+                size="small"
+                @click="handleLinkUser(row, 'wecom')"
+              >
+                {{ row.linked ? '修改关联' : '关联本地用户' }}
+              </el-button>
+              <el-button 
+                v-if="row.linked"
+                type="danger" 
+                size="small"
+                @click="handleUnlinkUser(row, 'wecom')"
+              >
+                解除关联
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="飞书用户" name="feishu">
+        <el-table 
+          :data="feishuUsers" 
+          v-loading="loading.feishu"
+          stripe
+        >
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="mobile" label="手机号" />
+          <el-table-column prop="department" label="部门" />
+          <el-table-column prop="position" label="职位" />
+          <el-table-column prop="created_at" label="创建时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="已关联本地用户" width="180">
+            <template #default="{ row }">
+              <el-tag v-if="row.linked" type="success">
+                {{ getLinkedUserName(row.user_id) }}
+              </el-tag>
+              <span v-else>未关联</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                type="primary" 
+                size="small"
+                @click="handleLinkUser(row, 'feishu')"
+              >
+                {{ row.linked ? '修改关联' : '关联本地用户' }}
+              </el-button>
+              <el-button 
+                v-if="row.linked"
+                type="danger" 
+                size="small"
+                @click="handleUnlinkUser(row, 'feishu')"
+              >
+                解除关联
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="钉钉用户" name="dingtalk">
+        <el-table 
+          :data="dingtalkUsers" 
+          v-loading="loading.dingtalk"
+          stripe
+        >
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="mobile" label="手机号" />
+          <el-table-column prop="department" label="部门" />
+          <el-table-column prop="position" label="职位" />
+          <el-table-column prop="created_at" label="创建时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="已关联本地用户" width="180">
+            <template #default="{ row }">
+              <el-tag v-if="row.linked" type="success">
+                {{ getLinkedUserName(row.user_id) }}
+              </el-tag>
+              <span v-else>未关联</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                type="primary" 
+                size="small"
+                @click="handleLinkUser(row, 'dingtalk')"
+              >
+                {{ row.linked ? '修改关联' : '关联本地用户' }}
+              </el-button>
+              <el-button 
+                v-if="row.linked"
+                type="danger" 
+                size="small"
+                @click="handleUnlinkUser(row, 'dingtalk')"
+              >
+                解除关联
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="GitHub用户" name="github">
+        <el-table 
+          :data="githubUsers" 
+          v-loading="loading.github"
+          stripe
+        >
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="created_at" label="创建时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="已关联本地用户" width="180">
+            <template #default="{ row }">
+              <el-tag v-if="row.linked" type="success">
+                {{ getLinkedUserName(row.user_id) }}
+              </el-tag>
+              <span v-else>未关联</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                type="primary" 
+                size="small"
+                @click="handleLinkUser(row, 'github')"
+              >
+                {{ row.linked ? '修改关联' : '关联本地用户' }}
+              </el-button>
+              <el-button 
+                v-if="row.linked"
+                type="danger" 
+                size="small"
+                @click="handleUnlinkUser(row, 'github')"
+              >
+                解除关联
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="Google用户" name="google">
+        <el-table 
+          :data="googleUsers" 
+          v-loading="loading.google"
+          stripe
+        >
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="created_at" label="创建时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="已关联本地用户" width="180">
+            <template #default="{ row }">
+              <el-tag v-if="row.linked" type="success">
+                {{ getLinkedUserName(row.user_id) }}
+              </el-tag>
+              <span v-else>未关联</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                type="primary" 
+                size="small"
+                @click="handleLinkUser(row, 'google')"
+              >
+                {{ row.linked ? '修改关联' : '关联本地用户' }}
+              </el-button>
+              <el-button 
+                v-if="row.linked"
+                type="danger" 
+                size="small"
+                @click="handleUnlinkUser(row, 'google')"
+              >
+                解除关联
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="GitLab用户" name="gitlab">
+        <el-table 
+          :data="gitlabUsers" 
+          v-loading="loading.gitlab"
+          stripe
+        >
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="created_at" label="创建时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="已关联本地用户" width="180">
+            <template #default="{ row }">
+              <el-tag v-if="row.linked" type="success">
+                {{ getLinkedUserName(row.user_id) }}
+              </el-tag>
+              <span v-else>未关联</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                type="primary" 
+                size="small"
+                @click="handleLinkUser(row, 'gitlab')"
+              >
+                {{ row.linked ? '修改关联' : '关联本地用户' }}
+              </el-button>
+              <el-button 
+                v-if="row.linked"
+                type="danger" 
+                size="small"
+                @click="handleUnlinkUser(row, 'gitlab')"
+              >
+                解除关联
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="Gitee用户" name="gitee">
+        <el-table 
+          :data="giteeUsers" 
+          v-loading="loading.gitee"
+          stripe
+        >
+          <el-table-column prop="name" label="姓名" />
+          <el-table-column prop="username" label="用户名" />
+          <el-table-column prop="email" label="邮箱" />
+          <el-table-column prop="created_at" label="创建时间">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="已关联本地用户" width="180">
+            <template #default="{ row }">
+              <el-tag v-if="row.linked" type="success">
+                {{ getLinkedUserName(row.user_id) }}
+              </el-tag>
+              <span v-else>未关联</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <el-button 
+                type="primary" 
+                size="small"
+                @click="handleLinkUser(row, 'gitee')"
+              >
+                {{ row.linked ? '修改关联' : '关联本地用户' }}
+              </el-button>
+              <el-button 
+                v-if="row.linked"
+                type="danger" 
+                size="small"
+                @click="handleUnlinkUser(row, 'gitee')"
+              >
+                解除关联
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+    </el-tabs>
 
     <el-dialog
       v-model="dialogVisible"
@@ -129,75 +441,90 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit(formRef)" :loading="submitting">
+        <el-button type="primary" @click="handleSubmit" :loading="submitting">
           确定
         </el-button>
       </template>
     </el-dialog>
 
+    <!-- 关联用户对话框 -->
     <el-dialog
-      v-model="authDialogVisible"
-      :title="`${currentUser?.name || ''} 的授权管理`"
-      width="800px"
+      v-model="linkDialogVisible"
+      title="关联本地用户"
+      width="500px"
     >
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="笔记授权" name="notes">
-          <el-table
-            :data="notes"
-            v-loading="notesLoading"
-            style="width: 100%"
-          >
-            <el-table-column prop="title" label="笔记名称" />
-            <el-table-column prop="group_detail.name" label="所属分组" />
-            <el-table-column label="授权" width="100" align="center">
-              <template #default="{ row }">
-                <el-switch
-                  v-model="row.hasAuth"
-                  @change="handleNoteAuthChange(row)"
-                />
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-        <el-tab-pane label="分组授权" name="groups">
-          <el-table
-            :data="groups"
-            v-loading="groupsLoading"
-            style="width: 100%"
-          >
-            <el-table-column prop="name" label="分组名称" />
-            <el-table-column prop="description" label="描述" />
-            <el-table-column label="授权" width="100" align="center">
-              <template #default="{ row }">
-                <el-switch
-                  v-model="row.hasAuth"
-                  @change="handleGroupAuthChange(row)"
-                />
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
+      <el-form
+        ref="linkFormRef"
+        :model="linkForm"
+        label-width="100px"
+      >
+        <el-form-item label="第三方用户" prop="thirdPartyUser">
+          <el-input v-model="linkForm.thirdPartyUsername" disabled />
+        </el-form-item>
+        <el-form-item label="本地用户" prop="localUserId">
+          <el-select v-model="linkForm.localUserId" filterable placeholder="请选择本地用户">
+            <el-option
+              v-for="user in users"
+              :key="user.id"
+              :label="`${user.first_name} ${user.last_name} (${user.username})`"
+              :value="user.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="linkDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitLinkUser" :loading="linkSubmitting">确定</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
-import { Plus, Edit, Delete, Key } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { getUsers, createUser, updateUser, deleteUser, getNotes, getGroups } from '@/api'
+import { userApi } from '@/api/users'
 import type { User } from '@/api/types'
+import type { 
+  WeComUser, 
+  FeiShuUser, 
+  DingTalkUser, 
+  GitHubUser, 
+  GoogleUser, 
+  GitLabUser, 
+  GiteeUser 
+} from '@/api/users'
 import { useUserStore } from '@/store/user'
 
+// 用户数据
 const users = ref<User[]>([])
-const loading = ref(false)
+const wecomUsers = ref<WeComUser[]>([])
+const feishuUsers = ref<FeiShuUser[]>([])
+const dingtalkUsers = ref<DingTalkUser[]>([])
+const githubUsers = ref<GitHubUser[]>([])
+const googleUsers = ref<GoogleUser[]>([])
+const gitlabUsers = ref<GitLabUser[]>([])
+const giteeUsers = ref<GiteeUser[]>([])
+
+// 加载状态
+const loading = reactive({
+  local: false,
+  wecom: false,
+  feishu: false,
+  dingtalk: false,
+  github: false,
+  google: false,
+  gitlab: false,
+  gitee: false
+})
+
 const submitting = ref(false)
 const dialogVisible = ref(false)
-const dialogTitle = ref('')
 const currentUser = ref<User | null>(null)
 const formRef = ref<FormInstance>()
+const activeTab = ref('local')
 
 const form = reactive({
   username: '',
@@ -214,16 +541,17 @@ const rules: FormRules = {
     { required: true, message: '请输入用户名', trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
     { 
       validator: (rule, value, callback) => {
-        if (value.length < 6) {
+        if (!currentUser.value && !value) {
+          callback(new Error('请输入密码'))
+        } else if (value && value.length < 6) {
           callback(new Error('密码长度至少为6位，并同时包含大小写字母和数字'))
-        } else if (!/[A-Z]/.test(value)) {
+        } else if (value && !/[A-Z]/.test(value)) {
           callback(new Error('密码长度至少为6位，并同时包含大小写字母和数字'))
-        } else if (!/[a-z]/.test(value)) {
+        } else if (value && !/[a-z]/.test(value)) {
           callback(new Error('密码长度至少为6位，并同时包含大小写字母和数字'))
-        } else if (!/\d/.test(value)) {
+        } else if (value && !/\d/.test(value)) {
           callback(new Error('密码长度至少为6位，并同时包含大小写字母和数字'))
         } else {
           callback()
@@ -237,10 +565,21 @@ const rules: FormRules = {
   ]
 }
 
+// 关联用户表单数据
+const linkDialogVisible = ref(false)
+const linkSubmitting = ref(false)
+const linkFormRef = ref<FormInstance>()
+const linkForm = reactive({
+  thirdPartyUserId: '',
+  thirdPartyUsername: '',
+  thirdPartyType: '',
+  localUserId: ''
+})
+
 const fetchUsers = async () => {
-  loading.value = true
+  loading.local = true
   try {
-    const res = await getUsers()
+    const res = await userApi.getUsers()
     users.value = res.data.map(user => ({
       ...user,
       statusLoading: false
@@ -249,7 +588,250 @@ const fetchUsers = async () => {
     console.error(error)
     ElMessage.error('获取用户列表失败')
   } finally {
-    loading.value = false
+    loading.local = false
+  }
+}
+
+const fetchWeComUsers = async () => {
+  loading.wecom = true
+  try {
+    const res = await userApi.getWeComUsers()
+    wecomUsers.value = res.data
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取企业微信用户列表失败')
+  } finally {
+    loading.wecom = false
+  }
+}
+
+const fetchFeiShuUsers = async () => {
+  loading.feishu = true
+  try {
+    const res = await userApi.getFeiShuUsers()
+    feishuUsers.value = res.data
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取飞书用户列表失败')
+  } finally {
+    loading.feishu = false
+  }
+}
+
+const fetchDingTalkUsers = async () => {
+  loading.dingtalk = true
+  try {
+    const res = await userApi.getDingTalkUsers()
+    dingtalkUsers.value = res.data
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取钉钉用户列表失败')
+  } finally {
+    loading.dingtalk = false
+  }
+}
+
+const fetchGitHubUsers = async () => {
+  loading.github = true
+  try {
+    const res = await userApi.getGitHubUsers()
+    githubUsers.value = res.data
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取GitHub用户列表失败')
+  } finally {
+    loading.github = false
+  }
+}
+
+const fetchGoogleUsers = async () => {
+  loading.google = true
+  try {
+    const res = await userApi.getGoogleUsers()
+    googleUsers.value = res.data
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取Google用户列表失败')
+  } finally {
+    loading.google = false
+  }
+}
+
+const fetchGitLabUsers = async () => {
+  loading.gitlab = true
+  try {
+    const res = await userApi.getGitLabUsers()
+    gitlabUsers.value = res.data
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取GitLab用户列表失败')
+  } finally {
+    loading.gitlab = false
+  }
+}
+
+const fetchGiteeUsers = async () => {
+  loading.gitee = true
+  try {
+    const res = await userApi.getGiteeUsers()
+    giteeUsers.value = res.data
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取Gitee用户列表失败')
+  } finally {
+    loading.gitee = false
+  }
+}
+
+const handleTabChange = (tab: any) => {
+  const tabName = tab.props.name
+  activeTab.value = tabName
+  
+  // 加载相应标签页的数据
+  switch (tabName) {
+    case 'local':
+      if (users.value.length === 0) fetchUsers()
+      break
+    case 'wecom':
+      if (wecomUsers.value.length === 0) fetchWeComUsers()
+      break
+    case 'feishu':
+      if (feishuUsers.value.length === 0) fetchFeiShuUsers()
+      break
+    case 'dingtalk':
+      if (dingtalkUsers.value.length === 0) fetchDingTalkUsers()
+      break
+    case 'github':
+      if (githubUsers.value.length === 0) fetchGitHubUsers()
+      break
+    case 'google':
+      if (googleUsers.value.length === 0) fetchGoogleUsers()
+      break
+    case 'gitlab':
+      if (gitlabUsers.value.length === 0) fetchGitLabUsers()
+      break
+    case 'gitee':
+      if (giteeUsers.value.length === 0) fetchGiteeUsers()
+      break
+  }
+}
+
+const handleLinkUser = (user: any, type: string) => {
+  linkDialogVisible.value = true
+  linkForm.thirdPartyUserId = user.id
+  linkForm.thirdPartyUsername = `${user.name} (${user.username || user.email})`
+  linkForm.thirdPartyType = type
+  
+  // 如果已经关联了用户，则默认选中该用户
+  if (user.linked && user.user_id) {
+    linkForm.localUserId = user.user_id
+  } else {
+    linkForm.localUserId = ''
+  }
+  
+  // 确保已加载本地用户列表
+  if (users.value.length === 0) {
+    fetchUsers()
+  }
+}
+
+const handleUnlinkUser = async (user: any, type: string) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要解除关联吗？解除关联后，该第三方用户将无法使用关联的本地账号登录。',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    if (!user.user_id) {
+      ElMessage.warning('未找到已关联的本地用户')
+      return
+    }
+    
+    await userApi.unlinkUser(user.user_id, type)
+    ElMessage.success('已解除关联')
+    
+    // 刷新对应类型的用户列表
+    switch (type) {
+      case 'wecom':
+        fetchWeComUsers()
+        break
+      case 'feishu':
+        fetchFeiShuUsers()
+        break
+      case 'dingtalk':
+        fetchDingTalkUsers()
+        break
+      case 'github':
+        fetchGitHubUsers()
+        break
+      case 'google':
+        fetchGoogleUsers()
+        break
+      case 'gitlab':
+        fetchGitLabUsers()
+        break
+      case 'gitee':
+        fetchGiteeUsers()
+        break
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+      ElMessage.error('解除关联失败')
+    }
+  }
+}
+
+const submitLinkUser = async () => {
+  if (!linkForm.localUserId || !linkForm.thirdPartyUserId || !linkForm.thirdPartyType) {
+    ElMessage.warning('请选择本地用户')
+    return
+  }
+  
+  linkSubmitting.value = true
+  try {
+    await userApi.linkUser(
+      linkForm.localUserId, 
+      linkForm.thirdPartyUserId, 
+      linkForm.thirdPartyType
+    )
+    ElMessage.success('关联成功')
+    linkDialogVisible.value = false
+    
+    // 刷新对应类型的用户列表
+    switch (linkForm.thirdPartyType) {
+      case 'wecom':
+        fetchWeComUsers()
+        break
+      case 'feishu':
+        fetchFeiShuUsers()
+        break
+      case 'dingtalk':
+        fetchDingTalkUsers()
+        break
+      case 'github':
+        fetchGitHubUsers()
+        break
+      case 'google':
+        fetchGoogleUsers()
+        break
+      case 'gitlab':
+        fetchGitLabUsers()
+        break
+      case 'gitee':
+        fetchGiteeUsers()
+        break
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('关联用户失败')
+  } finally {
+    linkSubmitting.value = false
   }
 }
 
@@ -268,17 +850,8 @@ const resetForm = () => {
 }
 
 const handleAdd = () => {
+  resetForm()
   dialogVisible.value = true
-  dialogTitle.value = '新建用户'
-  form.value = {
-    username: '',
-    password: '',
-    first_name: '',
-    last_name: '',
-    email: '',
-    role: 'user',
-    is_active: true
-  }
 }
 
 const handleEdit = (user: User) => {
@@ -297,25 +870,28 @@ const handleEdit = (user: User) => {
 
 const handleSubmit = () => {
   if (!formRef.value) return
-  formRef.value.validate((valid) => {
+  
+  formRef.value.validate(async (valid) => {
     if (valid) {
-      loading.value = true
-      dialogVisible.value = false
-      const promise = currentUser.value
-        ? updateUser(currentUser.value.id, form)
-        : createUser(form)
-      promise
-        .then(() => {
+      submitting.value = true
+      try {
+        if (currentUser.value) {
+          // 编辑用户
+          await userApi.updateUser(currentUser.value.id, form)
           ElMessage.success('保存成功')
-          dialogVisible.value = false
-          fetchUsers()
-        })
-        .catch(err => {
-          ElMessage.error(err.message || '保存失败')
-        })
-        .finally(() => {
-          loading.value = false
-        })
+        } else {
+          // 创建用户
+          await userApi.createUser(form)
+          ElMessage.success('创建成功')
+        }
+        dialogVisible.value = false
+        fetchUsers()
+      } catch (error) {
+        console.error(error)
+        ElMessage.error('保存失败')
+      } finally {
+        submitting.value = false
+      }
     }
   })
 }
@@ -336,7 +912,7 @@ const handleDelete = async (user: User) => {
         type: 'warning'
       }
     )
-    await deleteUser(user.id)
+    await userApi.deleteUser(user.id)
     ElMessage.success('删除成功')
     await fetchUsers()
   } catch (error) {
@@ -373,7 +949,7 @@ const handleStatusChange = async (user: User & { statusLoading?: boolean }) => {
 
   user.statusLoading = true
   try {
-    await updateUser(user.id, { is_active: user.is_active })
+    await userApi.updateUser(user.id, { is_active: user.is_active })
     ElMessage.success(`已${user.is_active ? '启用' : '禁用'}用户`)
   } catch (error) {
     console.error(error)
@@ -385,99 +961,7 @@ const handleStatusChange = async (user: User & { statusLoading?: boolean }) => {
   }
 }
 
-// 授权相关
-const authDialogVisible = ref(false)
-const activeTab = ref('notes')
-const notes = ref([])
-const groups = ref([])
-const notesLoading = ref(false)
-const groupsLoading = ref(false)
-
-const handleAuth = async (user: User) => {
-  currentUser.value = user
-  authDialogVisible.value = true
-  await Promise.all([fetchNotes(), fetchGroups()])
-}
-
-const fetchNotes = async () => {
-  if (!currentUser.value) return
-  notesLoading.value = true
-  try {
-    const res = await getNotes()
-    notes.value = res.data.results.map(note => ({
-      ...note,
-      hasAuth: currentUser.value.notes?.includes(note.id)
-    }))
-  } catch (error) {
-    console.error(error)
-    ElMessage.error('获取笔记列表失败')
-  } finally {
-    notesLoading.value = false
-  }
-}
-
-const fetchGroups = async () => {
-  if (!currentUser.value) return
-  groupsLoading.value = true
-  try {
-    const res = await getGroups()
-    groups.value = res.data.map(group => ({
-      ...group,
-      hasAuth: currentUser.value.note_group?.includes(group.id)
-    }))
-  } catch (error) {
-    console.error(error)
-    ElMessage.error('获取分组列表失败')
-  } finally {
-    groupsLoading.value = false
-  }
-}
-
-const handleNoteAuthChange = async (note: any) => {
-  if (!currentUser.value) return
-  try {
-    const noteIds = note.hasAuth
-      ? [...(currentUser.value.notes || []), note.id]
-      : (currentUser.value.notes || []).filter(id => id !== note.id)
-
-    await updateUser(currentUser.value.id, {
-      note: noteIds,
-      note_group: currentUser.value.note_group || []  // 保持分组授权不变
-    })
-    
-    currentUser.value.notes = noteIds
-    ElMessage.success('笔记授权更新成功')
-  } catch (error: any) {
-    console.error(error)
-    ElMessage.error(error.response?.data?.detail || '笔记授权更新失败')
-    note.hasAuth = !note.hasAuth
-  }
-}
-
-const handleGroupAuthChange = async (group: any) => {
-  if (!currentUser.value) return
-  try {
-    const groupIds = group.hasAuth
-      ? [...(currentUser.value.note_group || []), group.id]
-      : (currentUser.value.note_group || []).filter(id => id !== group.id)
-
-    await updateUser(currentUser.value.id, {
-      note: currentUser.value.notes || [],  // 保持笔记授权不变
-      note_group: groupIds
-    })
-    
-    currentUser.value.note_group = groupIds
-    ElMessage.success('分组授权更新成功')
-  } catch (error: any) {
-    console.error(error)
-    ElMessage.error(error.response?.data?.detail || '分组授权更新失败')
-    group.hasAuth = !group.hasAuth
-  }
-}
-
 const userStore = useUserStore()
-
-const showAuthButton = computed(() => userStore.user?.role === 'admin' || userStore.user?.role === 'superuser')
 
 const getRoleLabel = (role: string) => {
   const roleMap: { [key: string]: string } = {
@@ -489,16 +973,26 @@ const getRoleLabel = (role: string) => {
 }
 
 const getRoleTagType = (role: string) => {
-  const typeMap: { [key: string]: '' | 'success' | 'warning' | 'danger' } = {
+  const typeMap: { [key: string]: 'primary' | 'success' | 'warning' | 'info' | 'danger' } = {
     'superuser': 'danger',
     'admin': 'warning',
     'user': 'success'
   }
-  return typeMap[role] || ''
+  return typeMap[role] || 'info'
+}
+
+// 获取已关联本地用户的名称
+const getLinkedUserName = (userId: string | undefined) => {
+  if (!userId) return '未知用户'
+  const user = users.value.find(u => u.id === userId)
+  if (user) {
+    return `${user.first_name} ${user.last_name} (${user.username})`
+  }
+  return '未知用户'
 }
 
 onMounted(() => {
-  fetchUsers()
+  fetchUsers() // 默认加载本地用户
 })
 </script>
 
@@ -509,17 +1003,32 @@ onMounted(() => {
 
 .header {
   margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 :deep(.el-switch) {
   --el-switch-on-color: var(--el-color-success);
 }
 
-.el-tabs {
+:deep(.el-tabs__header) {
+  margin-bottom: 20px;
+}
+
+:deep(.el-tabs__item) {
+  padding: 0 20px;
+}
+
+:deep(.el-tabs__nav-wrap::after) {
+  height: 1px;
+}
+
+.el-dialog :deep(.el-tabs) {
   margin: -20px;
 }
 
-.el-tab-pane {
+.el-dialog :deep(.el-tab-pane) {
   padding: 20px;
 }
 </style> 

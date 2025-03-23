@@ -41,7 +41,7 @@ class WeComLoginView(APIView):
         user_info = user_resp.json()
 
         if user_info.get('errcode') != 0:
-            return Response({'message': '获取企业微信用户信息失败'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({'message': f'获取企业微信用户信息失败！{str(user_info)}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         user_id = user_info.get('UserId')
         avatar = user_info.get('avatar')
@@ -52,7 +52,7 @@ class WeComLoginView(APIView):
         detail_data = detail_resp.json()
 
         if detail_data.get('errcode') != 0:
-            return Response({'message': '获取企业微信用户详细信息失败'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({'message': f'获取企业微信用户详细信息失败！{str(detail_data)}'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         wecom_user_data = {
             'wecom_user_id': user_id,

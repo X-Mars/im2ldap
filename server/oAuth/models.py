@@ -80,6 +80,8 @@ class WeComConfig(models.Model):
     secret = models.CharField('应用密钥', max_length=100)
     redirect_uri = models.URLField('回调域名', max_length=500, null=True, blank=True)
     enabled = models.BooleanField('是否启用', default=True)
+    sync_enabled = models.BooleanField('是否同步', default=True)
+    fetch_users = models.BooleanField('是否获取用户列表', default=True)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 
@@ -98,6 +100,8 @@ class FeiShuConfig(models.Model):
     app_secret = models.CharField('应用密钥', max_length=100)
     redirect_uri = models.URLField('回调域名', max_length=500, null=True, blank=True)
     enabled = models.BooleanField('是否启用', default=True)
+    sync_enabled = models.BooleanField('是否同步', default=True)
+    fetch_users = models.BooleanField('是否获取用户列表', default=True)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 
@@ -108,6 +112,7 @@ class FeiShuConfig(models.Model):
     def __str__(self):
         return f'飞书配置 - {self.app_id}'
 
+
 class DingTalkConfig(models.Model):
     """钉钉配置"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -116,6 +121,8 @@ class DingTalkConfig(models.Model):
     app_id = models.CharField('APP ID', max_length=100)
     redirect_uri = models.URLField('回调域名', max_length=500, null=True, blank=True)
     enabled = models.BooleanField('是否启用', default=True)
+    sync_enabled = models.BooleanField('是否同步', default=True)
+    fetch_users = models.BooleanField('是否获取用户列表', default=True)
     created_at = models.DateTimeField('创建时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 

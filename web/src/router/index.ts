@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router/auto'
-import type { RouteRecordRaw, NavigationGuardNext, RouteLocationNormalized } from 'vue-router/auto'
+import { createRouter, createWebHistory } from 'vue-router'
+import type { RouteRecordRaw, NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useUserStore } from '@/store/user'
 import { 
   DataLine, 
@@ -9,7 +9,9 @@ import {
   View,
   User,
   Setting,
-  Notebook
+  Notebook,
+  SwitchButton,
+  Connection
 } from '@element-plus/icons-vue'
 import type { Component } from 'vue'
 
@@ -107,6 +109,45 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '第三方登录配置',
           icon: Setting
+        }
+      }
+    ]
+  },
+  {
+    path: '/sync',
+    name: 'Sync',
+    component: () => import('@/views/Layout.vue'),
+    meta: {
+      title: '同步管理',
+      icon: SwitchButton,
+      requiresAuth: true
+    },
+    children: [
+      {
+        path: '/sync/ldap-configs',
+        name: 'LDAPConfigs',
+        component: () => import('@/views/sync/LDAPConfigs.vue'),
+        meta: { 
+          title: 'LDAP配置', 
+          icon: Connection
+        }
+      },
+      {
+        path: '/sync/configs',
+        name: 'SyncConfigs',
+        component: () => import('@/views/sync/SyncConfigs.vue'),
+        meta: { 
+          title: '同步配置', 
+          icon: Setting
+        }
+      },
+      {
+        path: '/sync/logs',
+        name: 'SyncLogs',
+        component: () => import('@/views/sync/SyncLogs.vue'),
+        meta: { 
+          title: '同步日志', 
+          icon: Document
         }
       }
     ]
