@@ -16,6 +16,7 @@ from .serializers import LDAPConfigSerializer, SyncConfigSerializer, SyncLogSeri
 from .sync_service import SyncService
 from .sync_scheduler import scheduler
 from oAuth.models import WeComUser, FeiShuUser, DingTalkUser, WeComConfig, FeiShuConfig, DingTalkConfig
+from .ldap_connector import LDAPConnector
 
 class LDAPConfigViewSet(viewsets.ModelViewSet):
     queryset = LDAPConfig.objects.all().order_by('-updated_at')
@@ -25,7 +26,6 @@ class LDAPConfigViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def test_connection(self, request, pk=None):
         """测试LDAP连接"""
-        from .ldap_connector import LDAPConnector
         
         ldap_config = self.get_object()
         try:
@@ -292,21 +292,12 @@ def user_trend_data(request):
     dingtalk_users = dingtalk_users[:len(dates)]
     ldap_users = ldap_users[:len(dates)]
     
-    # 当前各平台总用户数
-    current_stats = {
-        "wecom_users": total_wecom,
-        "feishu_users": total_feishu,
-        "dingtalk_users": total_dingtalk,
-        "ldap_users": total_ldap
-    }
-    
     return Response({
         "dates": dates,
         "wecom_users": wecom_users,
         "feishu_users": feishu_users,
         "dingtalk_users": dingtalk_users,
-        "ldap_users": ldap_users,
-        "current_stats": current_stats
+        "ldap_users": ldap_users
     }) 
 
 class SyncLogDetailView(APIView):
@@ -338,3 +329,65 @@ class SyncLogDetailView(APIView):
             return Response({"error": "日志不存在"}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=500) 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_stats(request):
+    """获取各平台用户数量统计"""
+    
+    # 从数据库获取企业微信用户数量
+    wecom_users = WeComUser.objects.count()
+    
+    # 从数据库获取飞书用户数量
+    feishu_users = FeiShuUser.objects.count()
+    
+    # 从数据库获取钉钉用户数量
+    dingtalk_users = DingTalkUser.objects.count()
+    
+    # 从LDAP获取用户数量
+    ldap_users = 0
+    ldap_config = LDAPConfig.objects.filter(enabled=True).first()
+    
+    if ldap_config:
+        try:
+            # 连接LDAP
+            ldap_connector = LDAPConnector(
+                server_uri=ldap_config.server_uri,
+                bind_dn=ldap_config.bind_dn,
+                bind_password=ldap_config.bind_password,
+                base_dn=ldap_config.base_dn,
+                use_ssl=ldap_config.use_ssl
+            )
+            ldap_connector.connect()
+            # 使用更广泛的搜索过滤器，匹配任意用户相关的对象类
+            # search_filter = '(|(objectClass=person)(objectClass=inetOrgPerson)(objectClass=organizationalPerson))'
+            
+            # 或者尝试使用uid属性来识别用户
+            search_filter = '(uid=*)'
+            attributes = ['uid', 'cn']
+            
+            entries = ldap_connector.search_entries(
+                search_base=ldap_config.base_dn,
+                search_filter=search_filter,
+                search_scope='SUBTREE',
+                attributes=attributes
+            )
+            
+            ldap_users = len(entries) if entries else 0
+
+            # 关闭连接
+            ldap_connector.close()
+            
+            print(f"LDAP用户搜索完成，找到 {ldap_users} 个用户")
+        except Exception as e:
+            print(f"获取LDAP用户数量出错: {str(e)}")
+            # 添加更详细的异常信息打印
+            import traceback
+            traceback.print_exc()
+    
+    return Response({
+        "wecom_users": wecom_users,
+        "feishu_users": feishu_users,
+        "dingtalk_users": dingtalk_users,
+        "ldap_users": ldap_users
+    }) 

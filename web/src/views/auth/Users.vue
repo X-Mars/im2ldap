@@ -1,9 +1,16 @@
 <template>
   <div class="users-container">
     <div class="header">
-      <el-button type="primary" @click="handleAdd">
-        <el-icon><Plus /></el-icon>新建用户
-      </el-button>
+      <div class="left">
+        <el-button type="primary" @click="handleAdd">
+          <el-icon><Plus /></el-icon>新建用户
+        </el-button>
+      </div>
+      <div class="right">
+        <el-button type="info" @click="refreshCurrentTab">
+          <el-icon><Refresh /></el-icon>刷新
+        </el-button>
+      </div>
     </div>
 
     <el-tabs v-model="activeTab" @tab-click="handleTabChange">
@@ -464,17 +471,21 @@
         <el-form-item label="本地用户" prop="localUserId">
           <el-select v-model="linkForm.localUserId" filterable placeholder="请选择本地用户">
             <el-option
-              v-for="user in users"
+              v-for="user in availableLocalUsers"
               :key="user.id"
               :label="`${user.first_name} ${user.last_name} (${user.username})`"
               :value="user.id"
             />
           </el-select>
+          <div class="select-hint" v-if="availableLocalUsers.length === 0">
+            没有可用的空闲本地用户，所有用户都已被关联
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="linkDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitLinkUser" :loading="linkSubmitting">确定</el-button>
+        <el-button type="primary" @click="submitLinkUser" :loading="linkSubmitting" 
+                   :disabled="availableLocalUsers.length === 0">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -482,7 +493,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
-import { Plus, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { userApi } from '@/api/users'
@@ -687,153 +698,192 @@ const handleTabChange = (tab: any) => {
   const tabName = tab.props.name
   activeTab.value = tabName
   
-  // 加载相应标签页的数据
+  // 始终刷新当前标签页的数据
+  refreshDataByTabName(tabName)
+}
+
+// 添加刷新当前标签页数据的函数
+const refreshCurrentTab = () => {
+  refreshDataByTabName(activeTab.value)
+}
+
+// 根据标签名刷新对应数据的函数
+const refreshDataByTabName = (tabName: string) => {
   switch (tabName) {
     case 'local':
-      if (users.value.length === 0) fetchUsers()
+      fetchUsers()
       break
     case 'wecom':
-      if (wecomUsers.value.length === 0) fetchWeComUsers()
+      fetchWeComUsers()
       break
     case 'feishu':
-      if (feishuUsers.value.length === 0) fetchFeiShuUsers()
+      fetchFeiShuUsers()
       break
     case 'dingtalk':
-      if (dingtalkUsers.value.length === 0) fetchDingTalkUsers()
+      fetchDingTalkUsers()
       break
     case 'github':
-      if (githubUsers.value.length === 0) fetchGitHubUsers()
+      fetchGitHubUsers()
       break
     case 'google':
-      if (googleUsers.value.length === 0) fetchGoogleUsers()
+      fetchGoogleUsers()
       break
     case 'gitlab':
-      if (gitlabUsers.value.length === 0) fetchGitLabUsers()
+      fetchGitLabUsers()
       break
     case 'gitee':
-      if (giteeUsers.value.length === 0) fetchGiteeUsers()
+      fetchGiteeUsers()
       break
   }
 }
 
+// 添加一个新的计算属性，过滤出未关联的本地用户
+const availableLocalUsers = computed(() => {
+  // 获取所有已关联的用户ID列表
+  const linkedUserIds = new Set();
+  
+  // 收集所有已关联的本地用户ID
+  wecomUsers.value.forEach(user => {
+    if (user.linked && user.user_id) {
+      linkedUserIds.add(user.user_id);
+    }
+  });
+  
+  feishuUsers.value.forEach(user => {
+    if (user.linked && user.user_id) {
+      linkedUserIds.add(user.user_id);
+    }
+  });
+  
+  dingtalkUsers.value.forEach(user => {
+    if (user.linked && user.user_id) {
+      linkedUserIds.add(user.user_id);
+    }
+  });
+  
+  githubUsers.value.forEach(user => {
+    if (user.linked && user.user_id) {
+      linkedUserIds.add(user.user_id);
+    }
+  });
+  
+  googleUsers.value.forEach(user => {
+    if (user.linked && user.user_id) {
+      linkedUserIds.add(user.user_id);
+    }
+  });
+  
+  gitlabUsers.value.forEach(user => {
+    if (user.linked && user.user_id) {
+      linkedUserIds.add(user.user_id);
+    }
+  });
+  
+  giteeUsers.value.forEach(user => {
+    if (user.linked && user.user_id) {
+      linkedUserIds.add(user.user_id);
+    }
+  });
+  
+  // 如果正在编辑现有关联，应该包含当前关联的用户
+  if (linkForm.thirdPartyType && linkForm.thirdPartyUserId) {
+    const currentLinkedUserId = getCurrentLinkedUserId(
+      linkForm.thirdPartyType, 
+      linkForm.thirdPartyUserId
+    );
+    
+    if (currentLinkedUserId) {
+      linkedUserIds.delete(currentLinkedUserId);
+    }
+  }
+  
+  // 返回未关联的用户列表
+  return users.value.filter(user => !linkedUserIds.has(user.id));
+});
+
+// 获取当前第三方用户关联的本地用户ID
+const getCurrentLinkedUserId = (type: string, id: string): string | null => {
+  let user;
+  
+  switch (type) {
+    case 'wecom':
+      user = wecomUsers.value.find(u => u.id === id);
+      break;
+    case 'feishu':
+      user = feishuUsers.value.find(u => u.id === id);
+      break;
+    case 'dingtalk':
+      user = dingtalkUsers.value.find(u => u.id === id);
+      break;
+    case 'github':
+      user = githubUsers.value.find(u => u.id === id);
+      break;
+    case 'google':
+      user = googleUsers.value.find(u => u.id === id);
+      break;
+    case 'gitlab':
+      user = gitlabUsers.value.find(u => u.id === id);
+      break;
+    case 'gitee':
+      user = giteeUsers.value.find(u => u.id === id);
+      break;
+  }
+  
+  // 确保返回的是 string 或 null，而不是 undefined
+  return (user && user.linked && user.user_id) ? user.user_id : null;
+};
+
+// 修改handleLinkUser函数
 const handleLinkUser = (user: any, type: string) => {
-  linkDialogVisible.value = true
-  linkForm.thirdPartyUserId = user.id
-  linkForm.thirdPartyUsername = `${user.name} (${user.username || user.email})`
-  linkForm.thirdPartyType = type
+  linkDialogVisible.value = true;
+  linkForm.thirdPartyUserId = user.id;
+  linkForm.thirdPartyUsername = `${user.name} (${user.username || user.email})`;
+  linkForm.thirdPartyType = type;
   
   // 如果已经关联了用户，则默认选中该用户
   if (user.linked && user.user_id) {
-    linkForm.localUserId = user.user_id
+    linkForm.localUserId = user.user_id;
   } else {
-    linkForm.localUserId = ''
+    linkForm.localUserId = '';
   }
   
   // 确保已加载本地用户列表
   if (users.value.length === 0) {
-    fetchUsers()
+    fetchUsers();
   }
-}
+};
 
-const handleUnlinkUser = async (user: any, type: string) => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要解除关联吗？解除关联后，该第三方用户将无法使用关联的本地账号登录。',
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    if (!user.user_id) {
-      ElMessage.warning('未找到已关联的本地用户')
-      return
-    }
-    
-    await userApi.unlinkUser(user.user_id, type)
-    ElMessage.success('已解除关联')
-    
-    // 刷新对应类型的用户列表
-    switch (type) {
-      case 'wecom':
-        fetchWeComUsers()
-        break
-      case 'feishu':
-        fetchFeiShuUsers()
-        break
-      case 'dingtalk':
-        fetchDingTalkUsers()
-        break
-      case 'github':
-        fetchGitHubUsers()
-        break
-      case 'google':
-        fetchGoogleUsers()
-        break
-      case 'gitlab':
-        fetchGitLabUsers()
-        break
-      case 'gitee':
-        fetchGiteeUsers()
-        break
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error(error)
-      ElMessage.error('解除关联失败')
-    }
-  }
-}
-
+// 修改提交函数，处理API错误
 const submitLinkUser = async () => {
   if (!linkForm.localUserId || !linkForm.thirdPartyUserId || !linkForm.thirdPartyType) {
-    ElMessage.warning('请选择本地用户')
-    return
+    ElMessage.warning('请选择本地用户');
+    return;
   }
   
-  linkSubmitting.value = true
+  linkSubmitting.value = true;
   try {
     await userApi.linkUser(
       linkForm.localUserId, 
       linkForm.thirdPartyUserId, 
       linkForm.thirdPartyType
-    )
-    ElMessage.success('关联成功')
-    linkDialogVisible.value = false
+    );
+    ElMessage.success('关联成功');
+    linkDialogVisible.value = false;
     
     // 刷新对应类型的用户列表
-    switch (linkForm.thirdPartyType) {
-      case 'wecom':
-        fetchWeComUsers()
-        break
-      case 'feishu':
-        fetchFeiShuUsers()
-        break
-      case 'dingtalk':
-        fetchDingTalkUsers()
-        break
-      case 'github':
-        fetchGitHubUsers()
-        break
-      case 'google':
-        fetchGoogleUsers()
-        break
-      case 'gitlab':
-        fetchGitLabUsers()
-        break
-      case 'gitee':
-        fetchGiteeUsers()
-        break
+    refreshDataByTabName(linkForm.thirdPartyType);
+  } catch (error: any) {
+    console.error(error);
+    // 显示更具体的错误消息
+    if (error.response && error.response.data && error.response.data.error) {
+      ElMessage.error(error.response.data.error);
+    } else {
+      ElMessage.error('关联用户失败');
     }
-  } catch (error) {
-    console.error(error)
-    ElMessage.error('关联用户失败')
   } finally {
-    linkSubmitting.value = false
+    linkSubmitting.value = false;
   }
-}
+};
 
 const resetForm = () => {
   if (formRef.value) {
@@ -991,8 +1041,69 @@ const getLinkedUserName = (userId: string | undefined) => {
   return '未知用户'
 }
 
+// 添加解除关联的处理函数
+const handleUnlinkUser = async (user: any, type: string) => {
+  if (!user.user_id) {
+    ElMessage.warning('未找到已关联的本地用户');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '确定要解除关联吗？解除关联后，该第三方用户将无法使用关联的本地账号登录。',
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+
+    linkSubmitting.value = true;
+    await userApi.unlinkUser(user.user_id, type);
+    ElMessage.success('已解除关联');
+
+    // 刷新对应类型的用户列表
+    switch (type) {
+      case 'wecom':
+        fetchWeComUsers();
+        break;
+      case 'feishu':
+        fetchFeiShuUsers();
+        break;
+      case 'dingtalk':
+        fetchDingTalkUsers();
+        break;
+      case 'github':
+        fetchGitHubUsers();
+        break;
+      case 'google':
+        fetchGoogleUsers();
+        break;
+      case 'gitlab':
+        fetchGitLabUsers();
+        break;
+      case 'gitee':
+        fetchGiteeUsers();
+        break;
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error(error);
+      if (error.response && error.response.data && error.response.data.message) {
+        ElMessage.error(error.response.data.message);
+      } else {
+        ElMessage.error('解除关联失败');
+      }
+    }
+  } finally {
+    linkSubmitting.value = false;
+  }
+};
+
 onMounted(() => {
-  fetchUsers() // 默认加载本地用户
+  // 获取默认标签页的数据
+  refreshDataByTabName(activeTab.value)
 })
 </script>
 
@@ -1006,6 +1117,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.left {
+  /* 左侧按钮容器 */
+}
+
+.right {
+  /* 右侧按钮容器 */
 }
 
 :deep(.el-switch) {
@@ -1030,5 +1149,11 @@ onMounted(() => {
 
 .el-dialog :deep(.el-tab-pane) {
   padding: 20px;
+}
+
+.select-hint {
+  font-size: 12px;
+  color: #F56C6C;
+  margin-top: 5px;
 }
 </style> 

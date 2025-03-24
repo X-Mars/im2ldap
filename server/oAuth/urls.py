@@ -57,4 +57,5 @@ urlpatterns = [
     # 用户链接相关API
     path('users/<str:user_id>/link/', link_user, name='link_user'),
     path('users/<str:user_id>/unlink/', unlink_user, name='unlink_user'),
+    path('link-user/', views.link_user, name='link-user'),
 ]

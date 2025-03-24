@@ -45,10 +45,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { getNoteStats, getActiveUsers } from '@/api'
-import { getUserTrend } from '@/api/sync'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/user'
+import { getUserTrend, getUserStats } from '@/api/sync'
 import {
   Document,
   FolderOpened,
@@ -110,17 +109,24 @@ const cards = ref([
   }
 ])
 
-const fetchStats = async () => {
+// 获取用户数据统计
+const fetchUserStats = async () => {
+  try {
+    const res = await getUserStats();
+    cards.value[0].value = res.data.wecom_users;
+    cards.value[1].value = res.data.feishu_users;
+    cards.value[2].value = res.data.dingtalk_users;
+    cards.value[3].value = res.data.ldap_users;
+  } catch (error) {
+    console.error('获取用户统计数据失败:', error);
+  }
+}
+
+// 获取趋势图数据
+const fetchTrendData = async () => {
   try {
     const userTrendRes = await getUserTrend(timeRange.value);
     
-    if (userTrendRes.data.current_stats) {
-      cards.value[0].value = userTrendRes.data.current_stats.wecom_users;
-      cards.value[1].value = userTrendRes.data.current_stats.feishu_users;
-      cards.value[2].value = userTrendRes.data.current_stats.dingtalk_users;
-      cards.value[3].value = userTrendRes.data.current_stats.ldap_users;
-    }
-
     userTrendChartOption.value = {
       tooltip: {
         trigger: 'axis',
@@ -214,17 +220,20 @@ const fetchStats = async () => {
       ]
     }
   } catch (error) {
-    console.error('获取统计数据失败:', error)
+    console.error('获取趋势数据失败:', error)
   }
 }
 
-watch(timeRange, () => {
-  fetchStats()
-})
-
+// 页面加载时获取数据
 onMounted(async () => {
   await userStore.fetchUserInfo()
-  fetchStats()
+  await fetchUserStats() // 获取用户统计数据
+  fetchTrendData() // 获取趋势图数据
+})
+
+// 监听时间范围变化，重新获取趋势数据
+watch(timeRange, () => {
+  fetchTrendData()
 })
 
 const userTrendChartOption = ref<EChartsOption>({
@@ -274,7 +283,7 @@ const userTrendChartOption = ref<EChartsOption>({
       name: '企业微信',
       type: 'line',
       smooth: true,
-      data: [150, 165, 158, 172, 168, 180, 185],
+      data: [0, 0, 0, 0, 0, 0, 0],
       lineStyle: {
         width: 3,
         color: '#409EFF'
@@ -286,7 +295,7 @@ const userTrendChartOption = ref<EChartsOption>({
       name: '飞书',
       type: 'line',
       smooth: true,
-      data: [100, 110, 115, 112, 120, 122, 124],
+      data: [0, 0, 0, 0, 0, 0, 0],
       lineStyle: {
         width: 3,
         color: '#67C23A'
@@ -298,7 +307,7 @@ const userTrendChartOption = ref<EChartsOption>({
       name: '钉钉',
       type: 'line',
       smooth: true,
-      data: [120, 132, 128, 140, 145, 150, 156],
+      data: [0, 0, 0, 0, 0, 0, 0],
       lineStyle: {
         width: 3,
         color: '#E6A23C'
@@ -310,7 +319,7 @@ const userTrendChartOption = ref<EChartsOption>({
       name: 'OpenLDAP',
       type: 'line',
       smooth: true,
-      data: [200, 205, 210, 208, 215, 212, 220],
+      data: [0, 0, 0, 0, 0, 0, 0],
       lineStyle: {
         width: 3,
         color: '#909399'

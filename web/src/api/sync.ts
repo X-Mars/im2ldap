@@ -95,4 +95,9 @@ export const convertFormToSyncConfig = (formData: any): Partial<SyncConfig> => {
 // 获取用户趋势数据
 export const getUserTrend = (range: string = 'week') => {
   return request.get('/sync/user-trend/', { params: { range } });
+};
+
+// 获取用户统计数据
+export const getUserStats = () => {
+  return request.get('/sync/user-stats/');
 }; 

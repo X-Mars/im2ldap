@@ -10,13 +10,6 @@
         新增配置
       </el-button>
     </div>
-    
-    <el-card class="box-card">
-      <template #header>
-        <div class="card-header">
-          <span>同步配置列表</span>
-        </div>
-      </template>
       
       <el-table 
         :data="syncConfigs" 
@@ -92,7 +85,6 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
     
     <!-- 编辑/新增对话框 -->
     <el-dialog 

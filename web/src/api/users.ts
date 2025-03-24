@@ -227,11 +227,16 @@ export const userApi = {
   },
 
   // 链接本地用户和第三方用户
-  linkUser: (userId: string, thirdPartyUserId: string, thirdPartyType: string) => {
-    return request.post(`/auth/users/${userId}/link/`, {
-      third_party_user_id: thirdPartyUserId,
-      third_party_type: thirdPartyType
-    })
+  linkUser: (localUserId: string, thirdPartyUserId: string, thirdPartyType: string) => {
+    return request({
+      url: '/auth/link-user/',
+      method: 'post',
+      data: {
+        local_user_id: localUserId,
+        third_party_user_id: thirdPartyUserId,
+        third_party_type: thirdPartyType
+      }
+    });
   },
 
   // 解除本地用户和第三方用户的链接

@@ -527,72 +527,93 @@ class GiteeUserViewSet(viewsets.ReadOnlyModelViewSet):
 
 # 用户链接和解除链接API
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
-def link_user(request, user_id):
-    """将本地用户与第三方用户关联"""
+@permission_classes([IsAuthenticated, IsAdminUser])
+def link_user(request):
+    """关联本地用户与第三方用户"""
+    # 支持两种参数命名方式
+    local_user_id = request.data.get('local_user_id') or request.data.get('localUserId')
+    third_party_user_id = request.data.get('third_party_user_id') or request.data.get('thirdPartyUserId')
+    third_party_type = request.data.get('third_party_type') or request.data.get('thirdPartyType')
+    
+    if not all([local_user_id, third_party_user_id, third_party_type]):
+        return Response({'error': '缺少必要参数'}, status=status.HTTP_400_BAD_REQUEST)
+    
     try:
-        user = User.objects.get(id=user_id)
-        third_party_user_id = request.data.get('third_party_user_id')
-        third_party_type = request.data.get('third_party_type')
+        # 检查本地用户是否存在
+        local_user = User.objects.get(id=local_user_id)
         
-        if not third_party_user_id or not third_party_type:
-            return Response({'message': '缺少必要的参数'}, status=status.HTTP_400_BAD_REQUEST)
+        # 检查本地用户是否已关联其他第三方账号
+        is_linked = False
+        error_message = ''
         
+        # 检查各个平台是否已关联该本地用户
+        if WeComUser.objects.filter(user_id=local_user_id).exists():
+            is_linked = True
+            error_message = '该本地用户已关联企业微信账号'
+        elif FeiShuUser.objects.filter(user_id=local_user_id).exists():
+            is_linked = True
+            error_message = '该本地用户已关联飞书账号'
+        elif DingTalkUser.objects.filter(user_id=local_user_id).exists():
+            is_linked = True
+            error_message = '该本地用户已关联钉钉账号'
+        elif GitHubUser.objects.filter(user_id=local_user_id).exists():
+            is_linked = True
+            error_message = '该本地用户已关联GitHub账号'
+        elif GoogleUser.objects.filter(user_id=local_user_id).exists():
+            is_linked = True
+            error_message = '该本地用户已关联Google账号'
+        elif GitLabUser.objects.filter(user_id=local_user_id).exists():
+            is_linked = True
+            error_message = '该本地用户已关联GitLab账号'
+        elif GiteeUser.objects.filter(user_id=local_user_id).exists():
+            is_linked = True
+            error_message = '该本地用户已关联Gitee账号'
+        
+        # 如果用户已被关联，返回错误
+        if is_linked:
+            return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 获取第三方用户并进行关联
         if third_party_type == 'wecom':
             third_party_user = WeComUser.objects.get(id=third_party_user_id)
-            # 检查是否已关联其他用户
-            if third_party_user.user and third_party_user.user.id != user_id:
-                return Response({'message': '该企业微信用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
-            third_party_user.user = user
-            third_party_user.save()
+            # 先检查该第三方用户是否已关联其他本地用户
+            if third_party_user.user_id and third_party_user.user_id != local_user_id:
+                # 更新关联关系
+                third_party_user.user_id = local_user_id
+                third_party_user.save()
+            else:
+                third_party_user.user_id = local_user_id
+                third_party_user.save()
         elif third_party_type == 'feishu':
             third_party_user = FeiShuUser.objects.get(id=third_party_user_id)
-            if third_party_user.user and third_party_user.user.id != user_id:
-                return Response({'message': '该飞书用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
-            third_party_user.user = user
+            third_party_user.user_id = local_user_id
             third_party_user.save()
         elif third_party_type == 'dingtalk':
             third_party_user = DingTalkUser.objects.get(id=third_party_user_id)
-            if third_party_user.user and third_party_user.user.id != user_id:
-                return Response({'message': '该钉钉用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
-            third_party_user.user = user
+            third_party_user.user_id = local_user_id
             third_party_user.save()
         elif third_party_type == 'github':
             third_party_user = GitHubUser.objects.get(id=third_party_user_id)
-            if third_party_user.user and third_party_user.user.id != user_id:
-                return Response({'message': '该GitHub用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
-            third_party_user.user = user
+            third_party_user.user_id = local_user_id
             third_party_user.save()
         elif third_party_type == 'google':
             third_party_user = GoogleUser.objects.get(id=third_party_user_id)
-            if third_party_user.user and third_party_user.user.id != user_id:
-                return Response({'message': '该Google用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
-            third_party_user.user = user
+            third_party_user.user_id = local_user_id
             third_party_user.save()
         elif third_party_type == 'gitlab':
             third_party_user = GitLabUser.objects.get(id=third_party_user_id)
-            if third_party_user.user and third_party_user.user.id != user_id:
-                return Response({'message': '该GitLab用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
-            third_party_user.user = user
+            third_party_user.user_id = local_user_id
             third_party_user.save()
         elif third_party_type == 'gitee':
             third_party_user = GiteeUser.objects.get(id=third_party_user_id)
-            if third_party_user.user and third_party_user.user.id != user_id:
-                return Response({'message': '该Gitee用户已关联其他本地用户'}, status=status.HTTP_400_BAD_REQUEST)
-            third_party_user.user = user
+            third_party_user.user_id = local_user_id
             third_party_user.save()
-        else:
-            return Response({'message': '不支持的第三方类型'}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({'message': '关联成功'})
     except User.DoesNotExist:
-        return Response({'message': '本地用户不存在'}, status=status.HTTP_404_NOT_FOUND)
-    except (WeComUser.DoesNotExist, FeiShuUser.DoesNotExist, DingTalkUser.DoesNotExist, 
-            GitHubUser.DoesNotExist, GoogleUser.DoesNotExist, GitLabUser.DoesNotExist, 
-            GiteeUser.DoesNotExist):
-        return Response({'message': '第三方用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': '本地用户不存在'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response({'message': '关联失败', 'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': f'关联失败: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

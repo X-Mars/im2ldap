@@ -48,10 +48,6 @@
       </div>
     </div>
     
-    <div class="list-header">
-      <span>同步日志列表</span>
-    </div>
-    
     <el-table 
       :data="syncLogs" 
       style="width: 100%" 
