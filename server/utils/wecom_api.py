@@ -77,7 +77,7 @@ class WeComAPI:
             logger.error(f"获取企业微信部门列表出错: {str(e)}")
             return []
             
-    def get_department_users(self, department_id: int) -> List[Dict[str, Any]]:
+    def get_department_users(self, department_id: int, department_name: str) -> List[Dict[str, Any]]:
         """
         获取部门成员
         
@@ -99,8 +99,12 @@ class WeComAPI:
             response.raise_for_status()
             
             result = response.json()
+            user_list = []
             if result.get("errcode") == 0:
-                return result.get("userlist", [])
+                for user in result.get("userlist", []):
+                    user["department"] = department_name
+                    user_list.append(user)
+                return user_list
             else:
                 logger.error(f"获取企业微信部门成员失败: {result}")
                 return []
@@ -125,7 +129,8 @@ class WeComAPI:
         
         for dept in departments:
             dept_id = dept["id"]
-            users = self.get_department_users(dept_id)
+            department_name = dept["name"]
+            users = self.get_department_users(dept_id, department_name)
             
             for user in users:
                 user_id = user.get("userid")

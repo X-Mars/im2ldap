@@ -12,6 +12,7 @@ class LDAPConfig(models.Model):
     base_dn = models.CharField(max_length=255, verbose_name="基础DN")
     use_ssl = models.BooleanField(default=False, verbose_name="使用SSL")
     enabled = models.BooleanField(default=True, verbose_name="启用")
+    sync_interval = models.IntegerField(default=300, verbose_name="同步间隔(秒)")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     
@@ -31,14 +32,6 @@ class SyncConfig(models.Model):
         ('dingtalk', '钉钉'),
     )
     
-    SYNC_FREQUENCY_CHOICES = (
-        ('realtime', '实时同步'),
-        ('hourly', '每小时'),
-        ('daily', '每天'),
-        ('weekly', '每周'),
-        ('manual', '手动'),
-    )
-    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, verbose_name="配置名称")
     sync_type = models.CharField(max_length=20, choices=SYNC_TYPE_CHOICES, verbose_name="同步类型")
@@ -47,9 +40,10 @@ class SyncConfig(models.Model):
     sync_departments = models.BooleanField(default=True, verbose_name="同步部门")
     user_ou = models.CharField(max_length=255, default="users", verbose_name="用户OU")
     department_ou = models.CharField(max_length=255, default="departments", verbose_name="部门OU")
-    sync_frequency = models.CharField(max_length=20, choices=SYNC_FREQUENCY_CHOICES, default="manual", verbose_name="同步频率")
+    sync_interval = models.IntegerField(default=300, verbose_name="同步间隔(秒)")
     last_sync_time = models.DateTimeField(null=True, blank=True, verbose_name="上次同步时间")
     enabled = models.BooleanField(default=True, verbose_name="启用")
+    sync_interval = models.IntegerField(default=300, verbose_name="同步间隔(秒)")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新时间")
     
@@ -69,6 +63,7 @@ class SyncLog(models.Model):
     success = models.BooleanField(default=False, verbose_name="是否成功")
     users_synced = models.IntegerField(default=0, verbose_name="同步用户数")
     departments_synced = models.IntegerField(default=0, verbose_name="同步部门数")
+    error_message = models.TextField(blank=True, null=True, verbose_name="错误信息")
     
     class Meta:
         verbose_name = "同步日志"
@@ -109,4 +104,4 @@ class SyncLogDetail(models.Model):
         ordering = ['object_type', 'action', 'object_name']
     
     def __str__(self):
-        return f"{self.get_object_type_display()} {self.object_name} - {self.get_action_display()}" 
+        return f"{self.get_object_type_display()} {self.object_name} - {self.get_action_display()}"

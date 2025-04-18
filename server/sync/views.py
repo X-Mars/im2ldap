@@ -64,13 +64,29 @@ class SyncConfigViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def sync_now(self, request, pk=None):
         """立即执行同步任务"""
-        sync_config = self.get_object()
-        
         try:
+            sync_config = self.get_object()
+            if not sync_config:
+                return Response({
+                    'message': '同步配置不存在'
+                }, status=status.HTTP_404_NOT_FOUND)
+                
+            if not sync_config.enabled:
+                return Response({
+                    'message': '同步配置未启用'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
             log = scheduler.run_sync_now(str(sync_config.id))
+            if not log:
+                return Response({
+                    'message': '同步任务执行失败'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
             return Response({
                 'message': '同步已完成',
-                'success': log.success
+                'success': log.success,
+                'users_synced': log.users_synced,
+                'departments_synced': log.departments_synced
             })
         except Exception as e:
             return Response({
@@ -390,4 +406,4 @@ def get_user_stats(request):
         "feishu_users": feishu_users,
         "dingtalk_users": dingtalk_users,
         "ldap_users": ldap_users
-    }) 
+    })

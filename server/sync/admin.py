@@ -18,8 +18,8 @@ class LDAPConfigAdmin(admin.ModelAdmin):
 
 @admin.register(SyncConfig)
 class SyncConfigAdmin(admin.ModelAdmin):
-    list_display = ('name', 'sync_type', 'ldap_config', 'sync_frequency', 'last_sync_time', 'enabled')
-    list_filter = ('sync_type', 'sync_frequency', 'enabled', 'sync_users', 'sync_departments')
+    list_display = ('name', 'sync_type', 'ldap_config', 'last_sync_time', 'enabled')
+    list_filter = ('sync_type', 'enabled', 'sync_users', 'sync_departments')
     search_fields = ('name',)
     readonly_fields = ('created_at', 'updated_at', 'last_sync_time')
     fieldsets = (
@@ -27,10 +27,10 @@ class SyncConfigAdmin(admin.ModelAdmin):
             'fields': ('name', 'sync_type', 'ldap_config', 'enabled')
         }),
         ('同步设置', {
-            'fields': ('sync_users', 'sync_departments', 'user_ou', 'department_ou')
+            'fields': ('sync_interval', 'sync_users', 'sync_departments', 'user_ou', 'department_ou')
         }),
-        ('调度', {
-            'fields': ('sync_frequency', 'last_sync_time', 'created_at', 'updated_at')
+        ('时间信息', {
+            'fields': ('last_sync_time', 'created_at', 'updated_at')
         }),
     )
     
@@ -69,4 +69,4 @@ class SyncLogDetailAdmin(admin.ModelAdmin):
     list_display = ('sync_log', 'object_type', 'action', 'object_name')
     list_filter = ('object_type', 'action')
     search_fields = ('object_name', 'details')
-    readonly_fields = ('sync_log', 'object_type', 'action', 'object_id', 'object_name', 'old_data', 'new_data', 'details') 
+    readonly_fields = ('sync_log', 'object_type', 'action', 'object_id', 'object_name', 'old_data', 'new_data', 'details')

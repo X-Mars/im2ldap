@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from .models import LDAPConfig, SyncConfig, SyncLog, SyncLogDetail
 from .ldap_connector import LDAPConnector
+from oAuth.models import WeComUser # <-- 添加导入
 
 logger = logging.getLogger(__name__)
 
@@ -83,13 +84,19 @@ class SyncService:
         try:
             # 连接LDAP
             if not self.connect_ldap():
+                error_msg = "连接LDAP服务器失败"
+                logger.error(error_msg)
                 self.log.success = False
+                self.log.error_message = error_msg
                 self.log.save()
                 return self.log
                 
             # 确保基础OU存在
             if not self.ensure_base_ous():
+                error_msg = "创建基础OU失败"
+                logger.error(error_msg)
                 self.log.success = False
+                self.log.error_message = error_msg
                 self.log.save()
                 return self.log
                 
@@ -134,6 +141,7 @@ class SyncService:
             error_message = f"同步过程中发生错误: {str(e)}"
             logger.error(error_message)
             self.log.success = False
+            self.log.error_message = error_message
             self.log.save()
             return self.log
         finally:
@@ -162,10 +170,22 @@ class SyncService:
             )
             
             # 获取所有部门
-            departments = wecom_api.get_departments()
-            
+            try:
+                departments = wecom_api.get_departments()
+            except Exception as e:
+                error_msg = f"获取企业微信部门数据失败: {str(e)}"
+                logger.error(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
+                return 0
+                
             if not departments:
-                logger.warning("企业微信未返回任何部门数据")
+                error_msg = "企业微信未返回任何部门数据"
+                logger.warning(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
                 return 0
                 
             logger.info(f"从企业微信获取到 {len(departments)} 个部门")
@@ -371,10 +391,22 @@ class SyncService:
             )
             
             # 获取所有用户
-            users = wecom_api.get_users()
-            
+            try:
+                users = wecom_api.get_users()
+            except Exception as e:
+                error_msg = f"获取企业微信用户数据失败: {str(e)}"
+                logger.error(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
+                return 0
+                
             if not users:
-                logger.warning("企业微信未返回任何用户数据")
+                error_msg = "企业微信未返回任何用户数据"
+                logger.warning(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
                 return 0
                 
             logger.info(f"从企业微信获取到 {len(users)} 个用户")
@@ -403,6 +435,12 @@ class SyncService:
                 mobile = user.get('mobile', '')
                 email = user.get('email', '')
                 department_ids = user.get('department', [])
+                alias = user.get('alias', '') # 获取 alias
+                avatar = user.get('avatar', '') # 获取 avatar
+                status = user.get('status', 1) # 获取 status, 默认为 1 (已激活)
+                gender = user.get('gender', '0') # 获取 gender, 默认为 '0' (未知)
+                qr_code = user.get('qr_code', '') # 获取 qr_code
+                position = user.get('position', '') # 获取 position
                 
                 logger.info(f"处理企业微信用户: ID={userid}, 姓名={name}, 部门IDs={department_ids}")
                 
@@ -511,6 +549,7 @@ class SyncService:
                             )
                         
                         # 进行实际的更新操作
+                        ldap_update_success = False
                         if dn_changed:
                             # 尝试移动用户
                             move_success = self.ldap_connector.move_object(existing_user_dn, user_dn)
@@ -518,17 +557,56 @@ class SyncService:
                             if move_success:
                                 logger.info(f"成功移动用户: {existing_user_dn} -> {user_dn}")
                                 # 更新用户属性
-                                self.ldap_connector.modify_object(user_dn, user_attrs)
+                                ldap_update_success = self.ldap_connector.modify_object(user_dn, user_attrs)
                             else:
                                 logger.warning(f"移动用户失败: {existing_user_dn} -> {user_dn}")
                                 # 在原位置更新用户属性
-                                self.ldap_connector.modify_object(existing_user_dn, user_attrs)
+                                ldap_update_success = self.ldap_connector.modify_object(existing_user_dn, user_attrs)
                         else:
                             # 只更新用户属性
-                            self.ldap_connector.modify_object(existing_user_dn, user_attrs)
+                            ldap_update_success = self.ldap_connector.modify_object(existing_user_dn, user_attrs)
                             logger.info(f"已更新用户属性: {existing_user_dn}")
+
+                        # 如果LDAP更新成功，则更新本地数据库
+                        if ldap_update_success:
+                            WeComUser.objects.update_or_create(
+                                wecom_user_id=userid,
+                                defaults={
+                                    'name': name,
+                                    # 'alias': alias, # 移除无效字段
+                                    'mobile': mobile,
+                                    'email': email,
+                                    'avatar': avatar,
+                                    'status': status,
+                                    'gender': gender,
+                                    'qr_code': qr_code,
+                                    'position': position,
+                                    'department': department_ids, # 存储部门ID列表
+                                    # 'is_synced': True # 移除无效字段
+                                }
+                            )
+                            logger.info(f"已更新本地数据库用户: {userid}")
+                        else:
+                            logger.error(f"LDAP更新失败，未更新本地数据库用户: {userid}")
+
                     else:
                         logger.info(f"用户 {name} 无变化，跳过更新")
+                        # 即使LDAP无变化，也确保本地数据库是最新的
+                        WeComUser.objects.update_or_create(
+                            wecom_user_id=userid,
+                            defaults={
+                                'name': name,
+                                'mobile': mobile,
+                                'email': email,
+                                'avatar': avatar,
+                                'status': status,
+                                'gender': gender,
+                                'qr_code': qr_code,
+                                'position': position,
+                                'department': department_ids
+                            }
+                        )
+                        logger.info(f"已确认本地数据库用户最新: {userid}")
                 else:
                     # 创建新用户
                     logger.info(f"创建新用户: {user_dn}")
@@ -549,9 +627,26 @@ class SyncService:
                             },
                             details=f"创建企业微信用户: {name}"
                         )
-                        logger.info(f"成功创建用户: {user_dn}")
+                        logger.info(f"成功创建LDAP用户: {user_dn}")
+                        
+                        # 创建本地数据库用户
+                        WeComUser.objects.create(
+                            wecom_user_id=userid,
+                            name=name,
+                            # alias=alias, # 移除无效字段
+                            mobile=mobile,
+                            email=email,
+                            avatar=avatar,
+                            status=status,
+                            gender=gender,
+                            qr_code=qr_code,
+                            position=position,
+                            department=department_ids,
+                            # is_synced=True # 移除无效字段
+                        )
+                        logger.info(f"成功创建本地数据库用户: {userid}")
                     else:
-                        logger.error(f"创建用户失败: {user_dn}")
+                        logger.error(f"创建LDAP用户失败: {user_dn}")
                 
                 count += 1
             
@@ -584,10 +679,22 @@ class SyncService:
             )
             
             # 获取所有部门
-            departments = feishu_api.get_departments()
-            
+            try:
+                departments = feishu_api.get_departments()
+            except Exception as e:
+                error_msg = f"获取飞书部门数据失败: {str(e)}"
+                logger.error(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
+                return 0
+                
             if not departments:
-                logger.warning("飞书未返回任何部门数据")
+                error_msg = "飞书未返回任何部门数据"
+                logger.warning(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
                 return 0
                 
             logger.info(f"从飞书获取到 {len(departments)} 个部门")
@@ -711,10 +818,22 @@ class SyncService:
             )
             
             # 获取所有用户
-            users = feishu_api.get_users()
-            
+            try:
+                users = feishu_api.get_users()
+            except Exception as e:
+                error_msg = f"获取飞书用户数据失败: {str(e)}"
+                logger.error(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
+                return 0
+                
             if not users:
-                logger.warning("飞书未返回任何用户数据")
+                error_msg = "飞书未返回任何用户数据"
+                logger.warning(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
                 return 0
                 
             logger.info(f"从飞书获取到 {len(users)} 个用户")
@@ -925,10 +1044,22 @@ class SyncService:
             )
             
             # 获取所有部门
-            departments = dingtalk_api.get_departments()
-            
+            try:
+                departments = dingtalk_api.get_departments()
+            except Exception as e:
+                error_msg = f"获取钉钉部门数据失败: {str(e)}"
+                logger.error(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
+                return 0
+                
             if not departments:
-                logger.warning("钉钉未返回任何部门数据")
+                error_msg = "钉钉未返回任何部门数据"
+                logger.warning(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
                 return 0
                 
             logger.info(f"从钉钉获取到 {len(departments)} 个部门")
@@ -1053,10 +1184,22 @@ class SyncService:
             )
             
             # 获取所有用户
-            users = dingtalk_api.get_users()
-            
+            try:
+                users = dingtalk_api.get_users()
+            except Exception as e:
+                error_msg = f"获取钉钉用户数据失败: {str(e)}"
+                logger.error(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
+                return 0
+                
             if not users:
-                logger.warning("钉钉未返回任何用户数据")
+                error_msg = "钉钉未返回任何用户数据"
+                logger.warning(error_msg)
+                if self.log:
+                    self.log.error_message = error_msg
+                    self.log.save()
                 return 0
                 
             logger.info(f"从钉钉获取到 {len(users)} 个用户")
@@ -1380,4 +1523,4 @@ class SyncService:
             logger.error(f"获取已存在用户映射失败: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            return {} 
+            return {}

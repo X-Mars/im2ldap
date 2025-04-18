@@ -38,8 +38,8 @@
         </el-table-column>
         <el-table-column label="同步频率">
           <template #default="scope">
-            <el-tag :type="getFrequencyTag(scope.row.sync_frequency)">
-              {{ getFrequencyName(scope.row.sync_frequency) }}
+            <el-tag :type="getFrequencyTag(scope.row.sync_interval)">
+              {{ getFrequencyName(scope.row.sync_interval) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -143,17 +143,16 @@
           <el-input v-model="formData.department_ou" placeholder="部门OU，例如：departments" />
         </el-form-item>
         
-        <el-form-item label="同步频率" prop="sync_frequency">
-          <el-select 
-            v-model="formData.sync_frequency" 
-            placeholder="请选择同步频率"
+        <el-form-item label="同步间隔(秒)" prop="sync_interval">
+          <el-input-number 
+            v-model="formData.sync_interval" 
+            :min="60"
+            :max="86400"
+            :step="60"
             style="width: 100%"
-          >
-            <el-option label="手动同步" value="manual" />
-            <el-option label="每小时" value="hourly" />
-            <el-option label="每天" value="daily" />
-            <el-option label="每周" value="weekly" />
-          </el-select>
+            placeholder="请输入同步间隔秒数"
+          />
+          <div class="form-item-tip">最小60秒，最大86400秒(24小时)</div>
         </el-form-item>
         
         <el-form-item label="启用">
@@ -249,27 +248,29 @@ const getSyncTypeTag = (type: string): 'primary' | 'success' | 'warning' | 'info
 }
 
 // 获取频率名称
-const getFrequencyName = (frequency: string) => {
-  const frequencyMap: Record<string, string> = {
-    'manual': '手动同步',
-    'hourly': '每小时',
-    'daily': '每天',
-    'weekly': '每周',
-    'realtime': '实时同步'
+const getFrequencyName = (interval: number) => {
+  if (interval < 300) { // 5分钟以内
+    return '每' + interval + '秒'
+  } else if (interval < 3600) { // 1小时以内
+    return '每' + Math.floor(interval / 60) + '分钟'
+  } else if (interval < 86400) { // 24小时以内
+    return '每' + Math.floor(interval / 3600) + '小时'
+  } else { // 超过24小时
+    return '每' + Math.floor(interval / 86400) + '天'
   }
-  return frequencyMap[frequency] || frequency
 }
 
 // 获取频率标签样式
-const getFrequencyTag = (frequency: string): 'primary' | 'success' | 'warning' | 'info' => {
-  const frequencyMap: Record<string, 'primary' | 'success' | 'warning' | 'info'> = {
-    'manual': 'info',
-    'hourly': 'warning',
-    'daily': 'success',
-    'weekly': 'primary',
-    'realtime': 'danger'
+const getFrequencyTag = (interval: number): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
+  if (interval < 300) { // 5分钟以内
+    return 'danger'
+  } else if (interval < 3600) { // 1小时以内
+    return 'warning'
+  } else if (interval < 86400) { // 24小时以内
+    return 'success'
+  } else { // 超过24小时
+    return 'primary'
   }
-  return frequencyMap[frequency] || 'info'
 }
 
 // 格式化日期时间
@@ -458,4 +459,4 @@ onMounted(() => {
 :deep(.el-dialog__body) {
   padding-top: 20px;
 }
-</style> 
+</style>

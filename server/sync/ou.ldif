@@ -1,7 +1,0 @@
-dn: ou=users,dc=my-domain,dc=com
-objectClass: organizationalUnit
-ou: users
-
-dn: ou=departments,dc=my-domain,dc=com
-objectClass: organizationalUnit
-ou: departments

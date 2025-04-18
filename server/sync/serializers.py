@@ -4,7 +4,7 @@ from .models import LDAPConfig, SyncConfig, SyncLog, SyncLogDetail
 class LDAPConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = LDAPConfig
-        fields = ('id', 'server_uri', 'bind_dn', 'bind_password', 'base_dn', 'use_ssl', 'enabled', 'created_at', 'updated_at')
+        fields = ('id', 'server_uri', 'bind_dn', 'bind_password', 'base_dn', 'use_ssl', 'enabled', 'sync_interval', 'created_at', 'updated_at')
         extra_kwargs = {
             'bind_password': {'write_only': True}
         }
@@ -47,6 +47,6 @@ class SyncConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = SyncConfig
         fields = ('id', 'name', 'sync_type', 'ldap_config', 'ldap_config_details', 'sync_users', 
-                 'sync_departments', 'user_ou', 'department_ou', 'sync_frequency', 
+                 'sync_departments', 'user_ou', 'department_ou', 'sync_interval',
                  'last_sync_time', 'enabled', 'created_at', 'updated_at', 'logs')
-        read_only_fields = ('last_sync_time', 'created_at', 'updated_at') 
+        read_only_fields = ('last_sync_time', 'created_at', 'updated_at')
