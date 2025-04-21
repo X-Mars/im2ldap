@@ -27,17 +27,17 @@
 
 [![QQ群](https://pub.idqqimg.com/wpa/images/group.png)](https://qm.qq.com/cgi-bin/qm/qr?k=a_y5qjuIfBYZHkhGg4JTZqGjTk3KUI5T&jump_from=webapi&authKey=qJpb8UQWFJcxKBdT/zq9kGBqiMxOm9k3TkfYeAtaVtHAbKbIfxMiGBolmP+aWa5b)
 
-[![QQ群二维码](https://github.com/X-Mars/im2ldap/blob/master/images/qrcode.jpg?raw=true)](https://qm.qq.com/cgi-bin/qm/qr?k=a_y5qjuIfBYZHkhGg4JTZqGjTk3KUI5T&jump_from=webapi&authKey=qJpb8UQWFJcxKBdT/zq9kGBqiMxOm9k3TkfYeAtaVtHAbKbIfxMiGBolmP+aWa5b)
+[![QQ群二维码](https://github.com/X-Mars/im2ldap/blob/main/images/qrcode.jpg?raw=true)](https://qm.qq.com/cgi-bin/qm/qr?k=a_y5qjuIfBYZHkhGg4JTZqGjTk3KUI5T&jump_from=webapi&authKey=qJpb8UQWFJcxKBdT/zq9kGBqiMxOm9k3TkfYeAtaVtHAbKbIfxMiGBolmP+aWa5b)
 
 [![B站火星小刘](https://github.com/X-Mars/Zabbix-Alert-WeChat/blob/master/images/5.jpg?raw=true)](https://space.bilibili.com/439068477)
 
 ## 截图展示
 
-![登录页](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/1.png)
-![仪表盘](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/2.png)
-![笔记管理](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/3.png)
-![笔记授权](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/4.png)
-![三方登录](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/5.png)
+![登录页](https://github.com/X-Mars/im2ldap/blob/main/images/1.png?raw=true)
+![仪表盘](https://github.com/X-Mars/im2ldap/blob/main/images/2.png?raw=true)
+![笔记管理](https://github.com/X-Mars/im2ldap/blob/main/images/3.png?raw=true)
+![笔记授权](https://github.com/X-Mars/im2ldap/blob/main/images/4.png?raw=true)
+![三方登录](https://github.com/X-Mars/im2ldap/blob/main/images/5.png?raw=true)
 
 ## 开发环境
 
