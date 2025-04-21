@@ -1,68 +1,23 @@
-# 蜜蜂🐝笔记 beenote
+# IM LDAP 账号同步助手 im2ldap
 
 ## 项目介绍
 
-1. 基于vue3 + django rest framework 的**markdown**笔记软件
-2. 由**cursor**协助开发
-3. 欢迎提意见和需求
+1. 基于vue3 + django rest framework
+2. 由**cursor、trae**协助开发
+3. 当前为测试版本，欢迎提意见和需求
 4. 近期将进行频繁更新，欢迎star、watch
 
 ## 功能定位
 
-1. **个人笔记** 和 **公司内部知识分享**
-2. 用户分为**普通用户**、**管理员用户**、**超级管理员**三种角色
-3. 用户角色可以创建**笔记和笔记分组**
-4. 管理员可以看到全部用户的笔记和笔记分组，并可以为其他用户分配**笔记和笔记分组**权限
-5. 超级管理员可以配置第三方登录
-6. 用户只可以看到管理员授权的**笔记和笔记分组**
+1. 将企业微信、飞书、钉钉等用户账号同步到LDAP
+2. 支持企业微信、飞书、钉钉、
 
 ## demo
 
-<https://beenote.huoxingxiaoliu.com/login?username=admin&password=mifengbiji>  
+<https://im2ldap.huoxingxiaoliu.com/login?username=admin&password=huoxingxiaoliu>  
 用户名：admin  
-密码：mifengbiji  
+密码：huoxingxiaoliu
 
-## Docker快速开始
-
-### 创建docker-compose.yaml文件  
-**生产建议打开数据库持久化**
-
-```yaml
-version: '3'
-
-services:
-  beenote:
-    image: xtlyk/beenote:latest
-    container_name: beenote
-    # pull_policy: never  # 不自动拉取镜像
-    ports:
-      - "80:80"      # 前端端口
-      - "8000:8000"  # 后端端口
-    environment:
-      - TZ=Asia/Shanghai
-      - DEBUG=0
-      - DJANGO_SETTINGS_MODULE=server.settings
-      - SECRET_KEY=G2afcZy1EZwKIqZ61uV3Nhp1RInSTKZYiVXm5IzF
-    # volumes:
-    #   - /data/:/app/data/  # 数据库文件持久化，如开启数据库为初始空状态，需手动创建superuser
-    restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/auth/health/?format=json"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-```
-
-```shell
-# 创建数据库持久化目录
-# mkdir /data
-docker compose up
-```
-
-## 浏览器打开
-
-<http://localhost>
 
 ## 跟着火星小刘学运维开发
 
@@ -70,28 +25,26 @@ docker compose up
 
 ## qq群
 
-欢迎加入beenote-笔记与知识仓库。
-
 [![QQ群](https://pub.idqqimg.com/wpa/images/group.png)](https://qm.qq.com/cgi-bin/qm/qr?k=a_y5qjuIfBYZHkhGg4JTZqGjTk3KUI5T&jump_from=webapi&authKey=qJpb8UQWFJcxKBdT/zq9kGBqiMxOm9k3TkfYeAtaVtHAbKbIfxMiGBolmP+aWa5b)
 
-[![QQ群二维码](https://github.com/X-Mars/beenote/blob/master/images/qrcode.jpg?raw=true)](https://qm.qq.com/cgi-bin/qm/qr?k=a_y5qjuIfBYZHkhGg4JTZqGjTk3KUI5T&jump_from=webapi&authKey=qJpb8UQWFJcxKBdT/zq9kGBqiMxOm9k3TkfYeAtaVtHAbKbIfxMiGBolmP+aWa5b)
+[![QQ群二维码](https://github.com/X-Mars/im2ldap/blob/master/images/qrcode.jpg?raw=true)](https://qm.qq.com/cgi-bin/qm/qr?k=a_y5qjuIfBYZHkhGg4JTZqGjTk3KUI5T&jump_from=webapi&authKey=qJpb8UQWFJcxKBdT/zq9kGBqiMxOm9k3TkfYeAtaVtHAbKbIfxMiGBolmP+aWa5b)
 
 [![B站火星小刘](https://github.com/X-Mars/Zabbix-Alert-WeChat/blob/master/images/5.jpg?raw=true)](https://space.bilibili.com/439068477)
 
 ## 截图展示
 
-![登录页](https://raw.githubusercontent.com/X-Mars/beenote/refs/heads/master/images/1.png)
-![仪表盘](https://raw.githubusercontent.com/X-Mars/beenote/refs/heads/master/images/2.png)
-![笔记管理](https://raw.githubusercontent.com/X-Mars/beenote/refs/heads/master/images/3.png)
-![笔记授权](https://raw.githubusercontent.com/X-Mars/beenote/refs/heads/master/images/4.png)
-![三方登录](https://raw.githubusercontent.com/X-Mars/beenote/refs/heads/master/images/5.png)
+![登录页](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/1.png)
+![仪表盘](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/2.png)
+![笔记管理](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/3.png)
+![笔记授权](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/4.png)
+![三方登录](https://raw.githubusercontent.com/X-Mars/im2ldap/refs/heads/master/images/5.png)
 
 ## 开发环境
 
 ```shell
 python 3.12
 sqlite 3
-django 5.1.7
+django 5.2
 node v22.14.0
 ```
 
@@ -100,13 +53,13 @@ node v22.14.0
 1. 拉取代码
 
 ```shell
-git clone https://github.com/X-Mars/beenote.git
+git clone https://github.com/X-Mars/im2ldap.git
 ```
 
 2. 初始化后端
 
 ```shell
-cd beenote/server
+cd im2ldap/server
 pip3 install -r requirements.txt
 python3 manage.py makemigrations
 python3 manage.py migrate
@@ -122,7 +75,7 @@ python3 manage.py runserver
 
 ```conf
 location / {
-  root /beenote/web/dist;
+  root /im2ldap/web/dist;
   index  index.html index.htm;
 }
 
@@ -154,7 +107,7 @@ location /api {
 
 ```conf
 用户名：admin 
-密码： mifengbiji
+密码： huoxingxiaoliu
 ```
 
 ## License
